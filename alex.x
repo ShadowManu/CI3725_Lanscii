@@ -11,26 +11,78 @@ $digit = 0-9 -- digits
 
 tokens :-
 
-	$white+ ;
+  -- Basics
+  $white+ ;
+  \{ ; -- TODO
+  \} ; -- TODO
+  \| ; -- TODO
+  @comment { \pos str -> TkComment pos str } -- TODO REMOVE
+  @identifier { \pos str -> TkIdentifier pos str } -- TODO CHECK
 
-	!@identifier { \pos str -> TkInteger pos str } -- TODO PENDING
+  -- Constants
+	\# ; -- TODO
+	\<\\\> ; -- TODO
+	\<\|\> ; -- TODO
+	\<\/\> ; -- TODO
+	\<\-\> ; -- TODO
+	\<\_\> ; -- TODO
+	\< \> ; -- TODO
 
-	@identifier { \pos str -> TkIdentifier pos str } -- TODO CHECK
-	@comment { \pos str -> TkComment pos str } -- TODO REMOVE
+  -- Reserved Words
+  read ; -- TODO
+  write ; -- TODO
+
+  -- Type Symbols
+  \% ; -- TODO
+  \! ; -- TODO
+  \$ ; -- TODO
+
+  -- Normal Operators
+  = ; -- TODO
+  \; ; -- TODO
+  \? ; -- TODO
+  \( ; -- TODO
+  \) ; -- TODO
+
+  -- Boolean Operators
+  \\\/ ; -- TODO OR
+  \/\\ ; -- TODO AND
+  \^ ; -- TODO
+
+  -- Relational Operators
+  \<= ; -- TODO
+  \>= ; -- TODO
+  == ; -- TODO
+  \/= ; -- TODO
+  \< ; -- TODO
+  \> ; -- TODO
+
+  -- Arithmetic Operators
+  \+ ; -- TODO
+  \- ; -- TODO
+  \* ; -- TODO
+  \/ ; -- TODO
+  \% ; -- TODO
+
+  -- Canvas Operators
+  \: ; -- TODO
+  \| ; -- TODO
+  \$ ; -- TODO
+  \' ; -- TODO
 
 {
 -- Each action has type :: PosData -> String -> Token
 
 -- The token type:
 data Token =
-	TkInteger PosData String |
-	TkComment PosData String |
-	TkIdentifier PosData String
-	deriving (Eq,Show)
+  TkInteger PosData String |
+  TkComment PosData String |
+  TkIdentifier PosData String
+  deriving (Eq,Show)
 
 type PosData = AlexPosn
 
 main = do
-	s <- getContents
-	print (alexScanTokens s)
+  s <- getContents
+  print (alexScanTokens s)
 }
