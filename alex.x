@@ -20,13 +20,13 @@ tokens :-
   @identifier { \pos str -> TkIdentifier pos str } -- TODO CHECK
 
   -- Constants
-	\# ; -- TODO
-	\<\\\> ; -- TODO
-	\<\|\> ; -- TODO
-	\<\/\> ; -- TODO
-	\<\-\> ; -- TODO
-	\<\_\> ; -- TODO
-	\< \> ; -- TODO
+  \# ; -- TODO
+  \<\\\> ; -- TODO
+  \<\|\> ; -- TODO
+  \<\/\> ; -- TODO
+  \<\-\> ; -- TODO
+  \<\_\> ; -- TODO
+  \< \> ; -- TODO
 
   -- Reserved Words
   read ; -- TODO
