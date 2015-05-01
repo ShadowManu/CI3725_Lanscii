@@ -16,3 +16,6 @@ cabal.sandbox.config
 *.hp
 
 *.txt
+
+alex.hs
+lanscii
