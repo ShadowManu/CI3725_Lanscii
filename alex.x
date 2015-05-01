@@ -90,9 +90,9 @@ tokens :-
 
   -- Unexpected symbols
   . { Token BAD_CHAR }
-  @lcom { Token BAD_COMMENT }
-  @rcom { Token BAD_COMMENT }
-
+  @lcom { Token BAD_LCOM }
+  @rcom { Token BAD_RCOM } -- Spec does not specify this as bad comment
+                           -- But any other alternatives are bad
 {
 
 -- Defines the different types of available tokens
@@ -108,7 +108,7 @@ data TkType =
   PLUS | MINUS | ASTERISK | SLASH | -- PERCENT already included
   COLON |  DOLLAR | APOSTROPHE | -- PIPE already included
   IDENTIFIER |
-  BAD_CHAR | BAD_COMMENT
+  BAD_CHAR | BAD_LCOM | BAD_RCOM
   deriving (Show,Eq)
 
 -- Define the general token structure:
@@ -118,6 +118,13 @@ data Token = Token TkType AlexPosn String
 
 -- How a token is printed (showed)
 instance Show Token where
+  show (Token BAD_CHAR (AlexPn abs ln cn) value) =
+    "Error: Unexpected character: \"" ++ value ++ "\" at line: " ++ show ln ++ ", column: " ++ show cn
+  show (Token BAD_LCOM (AlexPn abs ln cn) value) =
+    "Error: Comment section opened but not closed at line: " ++ show ln ++ ", column: " ++ show cn
+  show (Token BAD_RCOM (AlexPn abs ln cn) value) =
+    "Error: Comment section closed without opening at line: " ++ show ln ++ ", column: " ++ show cn
+    -- Not in spec but decided to add
   show (Token tktype (AlexPn abs ln cn) value) =
     "token " ++ show tktype ++ " value (" ++ value ++ ") at line: " ++ show ln ++ ", column: " ++ show cn
 
@@ -128,7 +135,8 @@ canToken s = (\apos _ -> Token CANVAS apos s)
 -- Determines which tokens are considered bad
 isBadToken :: Token -> Bool
 isBadToken (Token BAD_CHAR _ _) = True
-isBadToken (Token BAD_COMMENT _ _) = True
+isBadToken (Token BAD_LCOM _ _) = True
+isBadToken (Token BAD_RCOM _ _) = True
 isBadToken x = False
 
 -- Given a list of tokens, gives only bad tokens if there is at least 1 bad
