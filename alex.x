@@ -14,73 +14,85 @@ tokens :-
 
   -- Basics
   $white+ ;
-  \{ ; -- TODO
-  \} ; -- TODO
-  \| ; -- TODO
-  @comment { Token COMMENT } -- TODO REMOVE
+  \{ { Token LCURLY }
+  \} { Token RCURLY }
+  \| { Token PIPE }
+  @comment ;
 
   -- Constants
-  @integer ; -- TODO
-  \# ; -- TODO
-  \<\\\> ; -- TODO
-  \<\|\> ; -- TODO
-  \<\/\> ; -- TODO
-  \<\-\> ; -- TODO
-  \<\_\> ; -- TODO
-  \< \> ; -- TODO
+  true      { Token TRUE }
+  false     { Token FALSE }
+  @integer  { Token NUMBER }
+  \#        { Token CANVAS }
+  \<\\\>    { canToken "\\" }
+  \<\|\>    { canToken "|" }
+  \<\/\>    { canToken "/" }
+  \<\-\>    { canToken "-" }
+  \<\_\>    { canToken "_" }
+  \<\ \>    { canToken " " }
 
   -- Reserved Words
-  read ; -- TODO
-  write ; -- TODO
+  read { Token READ }
+  write { Token WRITE }
 
   -- Type Symbols
-  \% ; -- TODO
-  \! ; -- TODO
-  \@ ; -- TODO
+  \% { Token PERCENT }
+  \! { Token EXCLAMATIONMARK }
+  \@ { Token AT }
 
   -- Normal Operators
-  = ; -- TODO
-  \; ; -- TODO
-  \? ; -- TODO
-  \( ; -- TODO
-  \) ; -- TODO
+  = { Token EQUALS }
+  \; { Token SEMICOLON }
+  \? { Token QUESTIONMARK }
+  \( { Token LPARENTHESIS }
+  \) { Token RPARENTHESIS }
 
   -- Boolean Operators
-  \\\/ ; -- TODO OR
-  \/\\ ; -- TODO AND
-  \^ ; -- TODO
+  \\\/ { Token LOG_OR }
+  \/\\ { Token LOG_AND }
+  \^ { Token LOG_NEG }
 
   -- Relational Operators
-  \<= ; -- TODO
-  \>= ; -- TODO
-  == ; -- TODO
-  \/= ; -- TODO
-  \< ; -- TODO
-  \> ; -- TODO
+  \<= { Token REL_LE }
+  \>= { Token REL_GE }
+  -- == ; { Token REL_EQ } -- TODO Does not exist in spec
+  \/= { Token REL_NE }
+  -- \< { Token REL_LT }
+  -- \> { Token REL_GT }
 
   -- Arithmetic Operators
-  \+ ; -- TODO
-  \- ; -- TODO
-  \* ; -- TODO
-  \/ ; -- TODO
-  \% ; -- TODO
+  \+ { Token PLUS }
+  \- { Token MINUS }
+  \* { Token ASTERISK }
+  \/ { Token SLASH }
+  \% { Token PERCENT }
 
   -- Canvas Operators
-  \: ; -- TODO
-  \| ; -- TODO
-  \$ ; -- TODO
-  \' ; -- TODO
+  \: { Token COLON }
+  \| { Token PIPE }
+  \$ { Token DOLLAR }
+  \' { Token APOSTROPHE }
 
   -- Normal Symbols
-  @identifier { Token IDENTIFIER }
-
+    @identifier { Token IDENTIFIER }
+  -- TODO True False
+  -- TODO FIx Number
+  -- TODO CANVAS CONSTANTS
 {
 
 -- Defines the different types of available tokens
 -- There should be one for each different symbol type
 data TkType =
-  IDENTIFIER |
-  COMMENT
+  LCURLY | RCURLY | PIPE |
+  TRUE | FALSE | NUMBER | CANVAS |
+  READ | WRITE |
+  PERCENT | EXCLAMATIONMARK | AT |
+  EQUALS | SEMICOLON | QUESTIONMARK | LPARENTHESIS | RPARENTHESIS |
+  LOG_OR | LOG_AND | LOG_NEG |
+  REL_LE | REL_GE | REL_NE | REL_LT | REL_GT |
+  PLUS | MINUS | ASTERISK | SLASH | -- PERCENT already included
+  COLON |  DOLLAR | APOSTROPHE | -- PIPE already included
+  IDENTIFIER
   deriving Show
 
 -- Define the general token structure:
@@ -91,6 +103,10 @@ data Token = Token TkType AlexPosn String
 instance Show Token where
   show (Token tktype (AlexPn abs ln cn) value) =
     "token " ++ show tktype ++ " value (" ++ value ++ ") at line: " ++ show ln ++ ", column: " ++ show cn
+
+-- Helper for Canvas Constants
+canToken :: String -> AlexPosn -> String -> Token
+canToken s = (\apos _ -> Token CANVAS apos s)
 
 main = do
   s <- getContents
