@@ -8,6 +8,7 @@ $digit = 0-9 -- digits
 
 @identifier = [a-zA-Z_][a-zA-Z_0-9]*
 @comment = \{\-.*\-\}
+@integer = [0-9]+
 
 tokens :-
 
@@ -16,10 +17,10 @@ tokens :-
   \{ ; -- TODO
   \} ; -- TODO
   \| ; -- TODO
-  @comment { \pos str -> TkComment pos str } -- TODO REMOVE
-  @identifier { \pos str -> TkIdentifier pos str } -- TODO CHECK
+  @comment { Token COMMENT } -- TODO REMOVE
 
   -- Constants
+  @integer ; -- TODO
   \# ; -- TODO
   \<\\\> ; -- TODO
   \<\|\> ; -- TODO
@@ -35,7 +36,7 @@ tokens :-
   -- Type Symbols
   \% ; -- TODO
   \! ; -- TODO
-  \$ ; -- TODO
+  \@ ; -- TODO
 
   -- Normal Operators
   = ; -- TODO
@@ -70,19 +71,28 @@ tokens :-
   \$ ; -- TODO
   \' ; -- TODO
 
+  -- Normal Symbols
+  @identifier { Token IDENTIFIER }
+
 {
--- Each action has type :: PosData -> String -> Token
 
--- The token type:
-data Token =
-  TkInteger PosData String |
-  TkComment PosData String |
-  TkIdentifier PosData String
-  deriving (Eq,Show)
+-- Defines the different types of available tokens
+-- There should be one for each different symbol type
+data TkType =
+  IDENTIFIER |
+  COMMENT
+  deriving Show
 
-type PosData = AlexPosn
+-- Define the general token structure:
+-- the type of the token, its value, and position information
+data Token = Token TkType AlexPosn String
+
+-- How a token is printed (showed)
+instance Show Token where
+  show (Token tktype (AlexPn abs ln cn) value) =
+    "token " ++ show tktype ++ " value (" ++ value ++ ") at line: " ++ show ln ++ ", column: " ++ show cn
 
 main = do
   s <- getContents
-  print (alexScanTokens s)
+  mapM_ print (alexScanTokens s)
 }
