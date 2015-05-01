@@ -24,10 +24,10 @@ tokens :-
   \| { Token PIPE }
   -- Alex does not accept lookaheads/lookbehinds
   -- The following expresion can be interpreted as follow:
-  -- We start with a left comment symbol
-  -- We end with a right comment symbol
+  -- We start with a left comment symbol (with an optional group of - )
+  -- We end with a right comment symbol (with an optional group of } )
   -- And in the middle we only accept groups of -  and }
-  -- with any other symbol that separates them (including any whitespaces)
+  -- with any other symbol going in between them (including any whitespaces)
   @lcom\-*(\-*@notcom+\}*)*\}*@rcom ; -- Comment
 
   -- Constants
