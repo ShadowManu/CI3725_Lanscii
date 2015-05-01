@@ -1,5 +1,6 @@
 {
 module Main (main) where
+import Data.List
 }
 
 %wrapper "posn"
@@ -7,8 +8,12 @@ module Main (main) where
 $digit = 0-9 -- digits
 
 @identifier = [a-zA-Z_][a-zA-Z_0-9]*
-@comment = \{\-.*\-\}
 @integer = [0-9]+
+
+-- Helpers for comments
+@lcom = \{\-
+@rcom = \-\}
+@notcom = [^\-\}]|$white
 
 tokens :-
 
@@ -17,7 +22,13 @@ tokens :-
   \{ { Token LCURLY }
   \} { Token RCURLY }
   \| { Token PIPE }
-  @comment ;
+  -- Alex does not accept lookaheads/lookbehinds
+  -- The following expresion can be interpreted as follow:
+  -- We start with a left comment symbol
+  -- We end with a right comment symbol
+  -- And in the middle we only accept groups of -  and }
+  -- with any other symbol that separates them (including any whitespaces)
+  @lcom\-*(\-*@notcom+\}*)*\}*@rcom ; -- Comment
 
   -- Constants
   true      { Token TRUE }
@@ -40,8 +51,9 @@ tokens :-
   \! { Token EXCLAMATIONMARK }
   \@ { Token AT }
 
-  -- Normal Operators
+  -- Common Operators
   = { Token EQUALS }
+  \: { Token COLON }
   \; { Token SEMICOLON }
   \? { Token QUESTIONMARK }
   \( { Token LPARENTHESIS }
@@ -55,7 +67,7 @@ tokens :-
   -- Relational Operators
   \<= { Token REL_LE }
   \>= { Token REL_GE }
-  -- == ; { Token REL_EQ } -- TODO Does not exist in spec
+  -- == ; { Token REL_EQ } -- Does not exist in spec
   \/= { Token REL_NE }
   -- \< { Token REL_LT }
   -- \> { Token REL_GT }
@@ -75,9 +87,12 @@ tokens :-
 
   -- Normal Symbols
     @identifier { Token IDENTIFIER }
-  -- TODO True False
-  -- TODO FIx Number
-  -- TODO CANVAS CONSTANTS
+
+  -- Unexpected symbols
+  . { Token BAD_CHAR }
+  @lcom { Token BAD_COMMENT }
+  @rcom { Token BAD_COMMENT }
+
 {
 
 -- Defines the different types of available tokens
@@ -92,12 +107,14 @@ data TkType =
   REL_LE | REL_GE | REL_NE | REL_LT | REL_GT |
   PLUS | MINUS | ASTERISK | SLASH | -- PERCENT already included
   COLON |  DOLLAR | APOSTROPHE | -- PIPE already included
-  IDENTIFIER
-  deriving Show
+  IDENTIFIER |
+  BAD_CHAR | BAD_COMMENT
+  deriving (Show,Eq)
 
 -- Define the general token structure:
 -- the type of the token, its value, and position information
 data Token = Token TkType AlexPosn String
+  deriving Eq
 
 -- How a token is printed (showed)
 instance Show Token where
@@ -108,7 +125,18 @@ instance Show Token where
 canToken :: String -> AlexPosn -> String -> Token
 canToken s = (\apos _ -> Token CANVAS apos s)
 
+-- Determines which tokens are considered bad
+isBadToken :: Token -> Bool
+isBadToken (Token BAD_CHAR _ _) = True
+isBadToken (Token BAD_COMMENT _ _) = True
+isBadToken x = False
+
+-- Given a list of tokens, gives only bad tokens if there is at least 1 bad
+tokensFilter :: [Token] -> [Token]
+tokensFilter toks = if find (isBadToken) toks == Nothing
+  then toks else filter (isBadToken) toks
+
 main = do
   s <- getContents
-  mapM_ print (alexScanTokens s)
+  (mapM_ print . tokensFilter . alexScanTokens) s
 }
