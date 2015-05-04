@@ -1,3 +1,9 @@
+-- File: alex.x
+-- Description: lanscii language parser
+-- Authors:
+--     Manuel Pacheco - 10-10524
+--     Nicolas Mañan - 06-39883
+
 {
 module Main (main) where
 import Data.List
@@ -62,6 +68,7 @@ tokens :-
   \) { Token RPARENTHESIS }
   \[ { Token LBRACKET }
   \] { Token RBRACKET }
+  \.\. { Token RANGE }
 
   -- Boolean Operators
   \\\/ { Token LOG_OR }
@@ -106,7 +113,7 @@ data TkType =
   TRUE | FALSE | NUMBER | CANVAS |
   READ | WRITE |
   PERCENT | EXCLAMATIONMARK | AT |
-  EQUALS | SEMICOLON | QUESTIONMARK | LPARENTHESIS | RPARENTHESIS | LBRACKET | RBRACKET |
+  EQUALS | SEMICOLON | QUESTIONMARK | LPARENTHESIS | RPARENTHESIS | LBRACKET | RBRACKET | RANGE |
   LOG_OR | LOG_AND | LOG_NEG |
   REL_LE | REL_GE | REL_NE | REL_LT | REL_GT |
   PLUS | MINUS | ASTERISK | SLASH | -- PERCENT already included
