@@ -7,6 +7,7 @@
 {
 module Main (main) where
 import Data.List
+import System.Environment
 }
 
 %wrapper "posn"
@@ -156,6 +157,7 @@ tokensFilter toks = if find (isBadToken) toks == Nothing
   then toks else filter (isBadToken) toks
 
 main = do
-  s <- getContents
+  args <- getArgs
+  s <- readFile . head $ args
   (mapM_ print . tokensFilter . alexScanTokens) s
 }
