@@ -1,0 +1,37 @@
+--- LANSCII
+
+- Autores:
+  Manuel Pacheco - 10-10524
+  Nicolás Mañan - 06-39883
+
+-- Decisiones de Implementacion:
+
+1. Lenguaje: decidimos usar Haskell por las facilidades que ofrece así
+como el reto funcional que igualmente trae. Sin embargo, el codigo resultante
+ha terminado siendo sencillo (salvo algunas expresiones regulares)
+
+2. Tipo de datos del token: esta formado por el tipo de token, su valor e
+informacion de posicion, usando siempre el mismo constructor (fue mas facil bajo
+ese modelo)
+
+3. Manejo de errores: para universalidad de nuestras funciones y tipos, todos
+los simbolos encontrados en el archivo son considerados tokens. Luego de leer
+todos los tokens, si existen tokens de malos caracteres o de malos comentarios,
+se filtran apropiadamente para solo imprimir los debidos (funcion TokensFilter).
+
+-- Estado Actual del Proyecto:
+
+Funcionando bajo la interpretación que tuvimos de la especificacion del lenguaje
+y entrega.
+
+-- Problemas Presentes
+
+Ninguno conocido.
+
+-- Comentarios respecto al proyecto
+
+No se especifica que hacer con un cerrado de comentarios imcompleto.
+Decidimos interpretarlo como un error de comentario.
+
+Este proyecto esta bajo control de versiones en el repositorio PRIVADO
+https://github.com/ShadowManu/CI3725_Lanscii , administrado por Manuel Pacheco.
