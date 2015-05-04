@@ -13,7 +13,7 @@ $digit = 0-9 -- digits
 -- Helpers for comments
 @lcom = \{\-
 @rcom = \-\}
-@notcom = [^\-\}]|$white
+@ex = [^\-\}]|$white
 
 tokens :-
 
@@ -22,13 +22,15 @@ tokens :-
   \{ { Token LCURLY }
   \} { Token RCURLY }
   \| { Token PIPE }
-  -- Alex does not accept lookaheads/lookbehinds
   -- The following expresion can be interpreted as follow:
-  -- We start with a left comment symbol (with an optional group of - )
-  -- We end with a right comment symbol (with an optional group of } )
-  -- And in the middle we only accept groups of -  and }
-  -- with any other symbol going in between them (including any whitespaces)
-  @lcom\-*(\-*@notcom+\}*)*\}*@rcom ; -- Comment
+  -- We start with a left comment symbol
+  -- after which we can have either
+  --   1. Any not-comment character
+  --   2. A } character
+  --   3. A group of at least 1 - followed by any char in rule 1.
+  -- finishing with a group of at least 1 -  followed by }
+  -- This expression has been derived from an automaton
+  \{\-(@ex|\}|\-+@ex)*\-+\} ; -- Comment
 
   -- Constants
   true      { Token TRUE }
@@ -58,6 +60,8 @@ tokens :-
   \? { Token QUESTIONMARK }
   \( { Token LPARENTHESIS }
   \) { Token RPARENTHESIS }
+  \[ { Token LBRACKET }
+  \] { Token RBRACKET }
 
   -- Boolean Operators
   \\\/ { Token LOG_OR }
@@ -102,7 +106,7 @@ data TkType =
   TRUE | FALSE | NUMBER | CANVAS |
   READ | WRITE |
   PERCENT | EXCLAMATIONMARK | AT |
-  EQUALS | SEMICOLON | QUESTIONMARK | LPARENTHESIS | RPARENTHESIS |
+  EQUALS | SEMICOLON | QUESTIONMARK | LPARENTHESIS | RPARENTHESIS | LBRACKET | RBRACKET |
   LOG_OR | LOG_AND | LOG_NEG |
   REL_LE | REL_GE | REL_NE | REL_LT | REL_GT |
   PLUS | MINUS | ASTERISK | SLASH | -- PERCENT already included
