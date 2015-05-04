@@ -147,14 +147,29 @@ canToken s = (\apos _ -> Token CANVAS apos s)
 -- Determines which tokens are considered bad
 isBadToken :: Token -> Bool
 isBadToken (Token BAD_CHAR _ _) = True
-isBadToken (Token BAD_LCOM _ _) = True
-isBadToken (Token BAD_RCOM _ _) = True
 isBadToken x = False
 
--- Given a list of tokens, gives only bad tokens if there is at least 1 bad
+-- Determines which tokes are considered bad comment
+isBadComment :: Token -> Bool
+isBadComment (Token BAD_LCOM _ _) = True
+isBadComment (Token BAD_RCOM _ _) = True
+isBadComment x = False
+
+-- Given a list of tokens, gives only good tokens,
+-- bad char tokens or bad comment tokens
+-- with priority over the last ones
 tokensFilter :: [Token] -> [Token]
-tokensFilter toks = if find (isBadToken) toks == Nothing
-  then toks else filter (isBadToken) toks
+tokensFilter = choice . send ([],[],[])
+  where
+    send (a,b,c) [] = (a,b,c)
+    send (a,b,c) (x:xs)
+      | isBadComment x = send(a,b,x:c) xs
+      | isBadToken x = send (a,x:b,c) xs
+      | otherwise = send (x:a,b,c) xs
+    choice (a,b,c)
+      | not $ null c = c
+      | not $ null b = b
+      | otherwise = a
 
 main = do
   args <- getArgs
