@@ -1,13 +1,17 @@
--- File: alex.x
--- Description: lanscii language parser
+-- File: Alex.x
+-- Description: lanscii language lexer
 -- Authors:
 --     Manuel Pacheco - 10-10524
 --     Nicolas Mañan - 06-39883
 
 {
-module Main (main) where
-import Data.List
-import System.Environment
+module Alex
+( Token(..)
+, TkType(..)
+, Display(..)
+, tokenize
+) where
+
 }
 
 %wrapper "posn"
@@ -105,9 +109,11 @@ tokens :-
   @rcom { Token BAD_RCOM } -- Spec does not specify this as bad comment
                            -- But any other alternatives are bad
 {
--- Custom typeclass to display tokens
-class Display a where
-  display :: a -> String
+
+-- Define the general token structure:
+-- the type of the token, its value, and position information
+data Token = Token TkType AlexPosn String
+  deriving (Show, Eq)
 
 -- Defines the different types of available tokens
 -- There should be one for each different symbol type
@@ -125,12 +131,11 @@ data TkType =
   BAD_CHAR | BAD_LCOM | BAD_RCOM
   deriving (Show,Eq)
 
--- Define the general token structure:
--- the type of the token, its value, and position information
-data Token = Token TkType AlexPosn String
-  deriving (Show, Eq)
+-- Custom typeclass to display tokens
+class Display a where
+  display :: a -> String
 
--- How a token is printed (showed)
+-- How a token is displayed (printed)
 instance Display Token where
   display (Token BAD_CHAR (AlexPn abs ln cn) value) =
     "Error: Unexpected character: \"" ++ value ++ "\" at line: " ++ show ln ++ ", column: " ++ show cn
@@ -144,7 +149,7 @@ instance Display Token where
 
 -- Helper for Canvas Constants
 canToken :: String -> AlexPosn -> String -> Token
-canToken s = (\apos _ -> Token CANVAS apos s)
+canToken s apos _ = Token CANVAS apos s
 
 -- Determines which tokens are considered bad
 isBadToken :: Token -> Bool
@@ -161,20 +166,18 @@ isBadComment x = False
 -- bad char tokens or bad comment tokens
 -- with priority over the last ones
 tokensFilter :: [Token] -> [Token]
-tokensFilter = choice . send ([],[],[])
+tokensFilter = choice . foldr send ([],[],[])
   where
-    send (a,b,c) [] = (a,b,c)
-    send (a,b,c) (x:xs)
-      | isBadComment x = send(a,b,x:c) xs
-      | isBadToken x = send (a,x:b,c) xs
-      | otherwise = send (x:a,b,c) xs
+    send x (a,b,c)
+      | isBadComment x = (a,b,x:c)
+      | isBadToken x = (a,x:b,c)
+      | otherwise = (x:a,b,c)
     choice (a,b,c)
       | not $ null c = c
       | not $ null b = b
       | otherwise = a
 
-main = do
-  args <- getArgs
-  s <- readFile . head $ args
-  mapM_ (putStrLn . display) . tokensFilter . alexScanTokens $ s
+tokenize :: String -> [Token]
+tokenize = tokensFilter . alexScanTokens
+
 }

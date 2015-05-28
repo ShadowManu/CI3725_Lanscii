@@ -17,5 +17,6 @@ cabal.sandbox.config
 
 *.txt
 
-alex.hs
+// Generated source code and binaries
+Alex.hs
 lanscii
