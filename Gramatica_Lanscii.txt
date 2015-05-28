@@ -1,0 +1,72 @@
+
+
+BEGIN -> TokenLCurly DECLARE_LIST TokenPipe STATEMENT_LIST TokenRCurly
+	   | TokenLCurly STATEMEN_LIST TokenRCurly
+
+
+
+DECLARE_LIST -> DATA_TYPE DECLARE_ID
+              | DECLARE_LIST DATA_TYPE DECLARE_ID
+
+
+DECLARE_ID -> TokenIdentifier 
+		    | DECLARE_ID TokenIdentifier
+
+
+DATA_TYPE -> TokenPercent
+		   | TokenAt
+		   | TokenExclamationMark
+
+
+STATEMENT_LIST -> STATEMENT
+			    | STATEMENT_LIST TokenSemicolon STATEMENT
+
+
+STATEMENT -> TokenIdentifier TokenEquals EXPRESSION
+           | TokenRead TokenIdentifier
+           | TokenWrite TokneIdentifier
+           
+           | BEGIN
+
+           | TokenLParenthesis EXPRESSION TokenQuestionMark STATEMENT_LIST TokenRParenthesis
+           | TokenLParenthesis EXPRESSION TokenQuestionMark STATEMENT_LIST TokenColon STAEMENT_LIST TokenRParenthesis 
+
+           | TokenLBracket EXPRESSION TokenPipe STATEMENT_LIST TokenRBracket
+           | TokenLBracket EXPRESSION TokenRange EXPRESSION TokenPipe STATEMENT_LIST TokenRBracket
+           | TokenLBracket TokenIdentifier TokenColon EXPRESSION TokenRange EXPRESSION TokenPipe STATEMENT_LIST TokenRBracket
+
+
+
+EXPRESSION -> TokenNumber
+			| TokenTrue
+			| TokenFalse
+			| TokenIdentifier
+
+			| TokenRParenthesis EXPRESSION TokenLParenthesis
+			| EXPRESSION TokenPlus EXPRESSION
+
+  			-- Arithmetic Operators
+			| EXPRESSION TokenPlus 		EXPRESSION
+			| EXPRESSION TokenMinus 	EXPRESSION
+			| EXPRESSION TokenAsterisk 	EXPRESSION
+			| EXPRESSION TokenSlash 	EXPRESSION
+			| EXPRESSION TokenPercent	EXPRESSION
+			| 			 TokenMinus 	EXPRESSION
+
+			-- Canvas Operators
+			| EXPRESSION TokenLinking 	 EXPRESSION
+			| EXPRESSION TokenAmpersand	 EXPRESSION
+			| 			 TokenDollar 	 EXPRESSION
+			| EXPRESSION TokenApostrophe 
+
+			-- Relational Operators
+			| EXPRESSION TokenRel_Le EXPRESSION
+			| EXPRESSION TokenRel_Ge EXPRESSION
+			| EXPRESSION TokenRel_Ne EXPRESSION
+			| EXPRESSION TokenRel_Lt EXPRESSION
+			| EXPRESSION TokenRel_Gt EXPRESSION
+
+			-- Boolean Operators
+			| EXPRESSION TokenLog_Or EXPRESSION
+			| EXPRESSION TokenLog_And EXPRESSION
+			| EXPRESSION TokenLog_Neg 

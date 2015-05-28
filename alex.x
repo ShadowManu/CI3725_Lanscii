@@ -61,7 +61,7 @@ tokens :-
   \@ { Token AT }
 
   -- Common Operators
-  = { Token EQUALS }
+  =  { Token EQUALS }
   \: { Token COLON }
   \; { Token SEMICOLON }
   \? { Token QUESTIONMARK }
@@ -79,10 +79,9 @@ tokens :-
   -- Relational Operators
   \<= { Token REL_LE }
   \>= { Token REL_GE }
-  -- == ; { Token REL_EQ } -- Does not exist in spec
   \/= { Token REL_NE }
-  -- \< { Token REL_LT }
-  -- \> { Token REL_GT }
+  \<  { Token REL_LT }
+  \>  { Token REL_GT }
 
   -- Arithmetic Operators
   \+ { Token PLUS }
@@ -92,8 +91,8 @@ tokens :-
   \% { Token PERCENT }
 
   -- Canvas Operators
-  \: { Token COLON }
-  \| { Token PIPE }
+  \~ { Token LINKING }
+  \& { Token AMPERSAND }
   \$ { Token DOLLAR }
   \' { Token APOSTROPHE }
 
@@ -114,11 +113,11 @@ data TkType =
   TRUE | FALSE | NUMBER | CANVAS |
   READ | WRITE |
   PERCENT | EXCLAMATIONMARK | AT |
-  EQUALS | SEMICOLON | QUESTIONMARK | LPARENTHESIS | RPARENTHESIS | LBRACKET | RBRACKET | RANGE |
+  EQUALS | COLON | SEMICOLON | QUESTIONMARK | LPARENTHESIS | RPARENTHESIS | LBRACKET | RBRACKET | RANGE |
   LOG_OR | LOG_AND | LOG_NEG |
   REL_LE | REL_GE | REL_NE | REL_LT | REL_GT |
   PLUS | MINUS | ASTERISK | SLASH | -- PERCENT already included
-  COLON |  DOLLAR | APOSTROPHE | -- PIPE already included
+  AMPERSAND | LINKING |  DOLLAR | APOSTROPHE | 
   IDENTIFIER |
   BAD_CHAR | BAD_LCOM | BAD_RCOM
   deriving (Show,Eq)
