@@ -105,6 +105,9 @@ tokens :-
   @rcom { Token BAD_RCOM } -- Spec does not specify this as bad comment
                            -- But any other alternatives are bad
 {
+-- Custom typeclass to display tokens
+class Display a where
+  display :: a -> String
 
 -- Defines the different types of available tokens
 -- There should be one for each different symbol type
@@ -117,7 +120,7 @@ data TkType =
   LOG_OR | LOG_AND | LOG_NEG |
   REL_LE | REL_GE | REL_NE | REL_LT | REL_GT |
   PLUS | MINUS | ASTERISK | SLASH | -- PERCENT already included
-  AMPERSAND | LINKING |  DOLLAR | APOSTROPHE | 
+  AMPERSAND | LINKING |  DOLLAR | APOSTROPHE |
   IDENTIFIER |
   BAD_CHAR | BAD_LCOM | BAD_RCOM
   deriving (Show,Eq)
@@ -125,18 +128,18 @@ data TkType =
 -- Define the general token structure:
 -- the type of the token, its value, and position information
 data Token = Token TkType AlexPosn String
-  deriving Eq
+  deriving (Show, Eq)
 
 -- How a token is printed (showed)
-instance Show Token where
-  show (Token BAD_CHAR (AlexPn abs ln cn) value) =
+instance Display Token where
+  display (Token BAD_CHAR (AlexPn abs ln cn) value) =
     "Error: Unexpected character: \"" ++ value ++ "\" at line: " ++ show ln ++ ", column: " ++ show cn
-  show (Token BAD_LCOM (AlexPn abs ln cn) value) =
+  display (Token BAD_LCOM (AlexPn abs ln cn) value) =
     "Error: Comment section opened but not closed at line: " ++ show ln ++ ", column: " ++ show cn
-  show (Token BAD_RCOM (AlexPn abs ln cn) value) =
+  display (Token BAD_RCOM (AlexPn abs ln cn) value) =
     "Error: Comment section closed without opening at line: " ++ show ln ++ ", column: " ++ show cn
     -- Not in spec but decided to add
-  show (Token tktype (AlexPn abs ln cn) value) =
+  display (Token tktype (AlexPn abs ln cn) value) =
     "token " ++ show tktype ++ " value (" ++ value ++ ") at line: " ++ show ln ++ ", column: " ++ show cn
 
 -- Helper for Canvas Constants
@@ -173,5 +176,5 @@ tokensFilter = choice . send ([],[],[])
 main = do
   args <- getArgs
   s <- readFile . head $ args
-  (mapM_ print . tokensFilter . alexScanTokens) s
+  mapM_ (putStrLn . display) . tokensFilter . alexScanTokens $ s
 }
