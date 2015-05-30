@@ -1,8 +1,6 @@
 
 
-BEGIN -> TokenLCurly DECLARE_LIST TokenPipe STATEMENT_LIST TokenRCurly
-	   | TokenLCurly STATEMEN_LIST TokenRCurly
-
+BEGIN -> STATEMENT
 
 
 DECLARE_LIST -> DATA_TYPE DECLARE_ID
@@ -22,28 +20,26 @@ STATEMENT_LIST -> STATEMENT
 			    | STATEMENT_LIST TokenSemicolon STATEMENT
 
 
-STATEMENT -> TokenIdentifier TokenEquals EXPRESSION
+STATEMENT -> TokenLCurly DECLARE_LIST TokenPipe STATEMENT_LIST TokenRCurly
+	   	   | TokenLCurly STATEMEN_LIST TokenRCurly 
+		   
+		   | TokenIdentifier TokenEquals EXPRESSION
            | TokenRead TokenIdentifier
            | TokenWrite TokneIdentifier
            
-           | BEGIN
-
            | TokenLParenthesis EXPRESSION TokenQuestionMark STATEMENT_LIST TokenRParenthesis
-           | TokenLParenthesis EXPRESSION TokenQuestionMark STATEMENT_LIST TokenColon STAEMENT_LIST TokenRParenthesis 
+           | TokenLParenthesis EXPRESSION TokenQuestionMark STATEMENT_LIST TokenColon STATEMENT_LIST TokenRParenthesis 
 
            | TokenLBracket EXPRESSION TokenPipe STATEMENT_LIST TokenRBracket
            | TokenLBracket EXPRESSION TokenRange EXPRESSION TokenPipe STATEMENT_LIST TokenRBracket
            | TokenLBracket TokenIdentifier TokenColon EXPRESSION TokenRange EXPRESSION TokenPipe STATEMENT_LIST TokenRBracket
 
 
-
 EXPRESSION -> TokenNumber
-			| TokenTrue
-			| TokenFalse
+			| BOOL
 			| TokenIdentifier
 
 			| TokenRParenthesis EXPRESSION TokenLParenthesis
-			| EXPRESSION TokenPlus EXPRESSION
 
   			-- Arithmetic Operators
 			| EXPRESSION TokenPlus 		EXPRESSION
@@ -51,12 +47,16 @@ EXPRESSION -> TokenNumber
 			| EXPRESSION TokenAsterisk 	EXPRESSION
 			| EXPRESSION TokenSlash 	EXPRESSION
 			| EXPRESSION TokenPercent	EXPRESSION
-			| 			 TokenMinus 	EXPRESSION
+
+			-- Unary Arithmetic Operator
+			| 			 	TokenMinus	EXPRESSION
 
 			-- Canvas Operators
 			| EXPRESSION TokenLinking 	 EXPRESSION
 			| EXPRESSION TokenAmpersand	 EXPRESSION
-			| 			 TokenDollar 	 EXPRESSION
+
+			-- Unary Canvas Operator
+			| 			 	TokenDollar EXPRESSION
 			| EXPRESSION TokenApostrophe 
 
 			-- Relational Operators
@@ -69,4 +69,9 @@ EXPRESSION -> TokenNumber
 			-- Boolean Operators
 			| EXPRESSION TokenLog_Or EXPRESSION
 			| EXPRESSION TokenLog_And EXPRESSION
-			| EXPRESSION TokenLog_Neg 
+
+			-- Unary Boolean Operator
+			| 				TokenLog_Neg EXPRESSION 
+
+BOOL -> True
+	  | False
