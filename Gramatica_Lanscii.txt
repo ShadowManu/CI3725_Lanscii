@@ -73,5 +73,5 @@ EXPRESSION -> TokenNumber
 			-- Unary Boolean Operator
 			| 				TokenLog_Neg EXPRESSION 
 
-BOOL -> True
-	  | False
+BOOL -> TokenTrue
+	  | TokenFalse
