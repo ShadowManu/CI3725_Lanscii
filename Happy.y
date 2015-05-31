@@ -23,105 +23,77 @@
 tokens :-
 
   -- Basics
-  $white+ ;
-  \{ { Token LCURLY }
-  \} { Token RCURLY }
-  \| { Token PIPE }
-  -- The following expresion can be interpreted as follow:
-  -- We start with a left comment symbol
-  -- after which we can have either
-  --   1. Any not-comment character
-  --   2. A } character
-  --   3. A group of at least 1 - followed by any char in rule 1.
-  -- finishing with a group of at least 1 -  followed by }
-  -- This expression has been derived from an automaton
-  \{\-(@ex|\}|\-+@ex)*\-+\} ; -- Comment
+  \{ 				{ Token LCURLY _}
+  \} 				{ Token RCURLY _}
+  \| 				{ Token PIPE _}
 
   -- Constants
-  true      { Token TRUE }
-  false     { Token FALSE }
-  @integer  { Token NUMBER }
-  \#        { Token CANVAS }
-  \<\\\>    { canToken "\\" }
-  \<\|\>    { canToken "|" }
-  \<\/\>    { canToken "/" }
-  \<\-\>    { canToken "-" }
-  \<\_\>    { canToken "_" }
-  \<\ \>    { canToken " " }
+  true      		{ Token TRUE _}
+  false     		{ Token FALSE _}
+  \#        		{ Token CANVAS _}
 
   -- Reserved Words
-  read { Token READ }
-  write { Token WRITE }
+  read 				{ Token READ _}
+  write 			{ Token WRITE _}
 
   -- Type Symbols
-  \% { Token PERCENT }
-  \! { Token EXCLAMATIONMARK }
-  \@ { Token AT }
+  \% 				{ Token PERCENT _}
+  \! 				{ Token EXCLAMATIONMARK _}
+  \@ 				{ Token AT _}
 
   -- Common Operators
-  =  { Token EQUALS }
-  \: { Token COLON }
-  \; { Token SEMICOLON }
-  \? { Token QUESTIONMARK }
-  \( { Token LPARENTHESIS }
-  \) { Token RPARENTHESIS }
-  \[ { Token LBRACKET }
-  \] { Token RBRACKET }
-  \.\. { Token RANGE }
+  =  				{ Token EQUALS _}
+  \: 				{ Token COLON _}
+  \; 				{ Token SEMICOLON _}
+  \? 				{ Token QUESTIONMARK _}
+  \( 				{ Token LPARENTHESIS _}
+  \) 				{ Token RPARENTHESIS _}
+  \[ 				{ Token LBRACKET _}
+  \] 				{ Token RBRACKET _}
+  \.\. 				{ Token RANGE _}
 
   -- Boolean Operators
-  \\\/ { Token LOG_OR }
-  \/\\ { Token LOG_AND }
-  \^ { Token LOG_NEG }
+  \\\/ 				{ Token LOG_OR _}
+  \/\\ 				{ Token LOG_AND _}
+  \^ 				{ Token LOG_NEG _}
 
   -- Relational Operators
-  \<= { Token REL_LE }
-  \>= { Token REL_GE }
-  \/= { Token REL_NE }
-  \<  { Token REL_LT }
-  \>  { Token REL_GT }
+  \<= 				{ Token REL_LE _}
+  \>= 				{ Token REL_GE _}
+  \/= 				{ Token REL_NE _}
+  \<  				{ Token REL_LT _}
+  \>  				{ Token REL_GT _}
 
   -- Arithmetic Operators
-  \+ { Token PLUS }
-  \- { Token MINUS }
-  \* { Token ASTERISK }
-  \/ { Token SLASH }
-  \% { Token PERCENT }
+  \+ 				{ Token PLUS _}
+  \- 				{ Token MINUS _}
+  \* 				{ Token ASTERISK _}
+  \/ 				{ Token SLASH _}
+  \% 				{ Token PERCENT _}
 
   -- Canvas Operators
-  \~ { Token LINKING }
-  \& { Token AMPERSAND }
-  \$ { Token DOLLAR }
-  \' { Token APOSTROPHE }
+  \~ 				{ Token LINKING _}
+  \& 				{ Token AMPERSAND _}
+  \$ 				{ Token DOLLAR _}
+  \' 				{ Token APOSTROPHE _}
 
-  -- Normal Symbols
-    @identifier { Token IDENTIFIER }
-
-  -- Unexpected symbols
-  . { Token BAD_CHAR }
-  @lcom { Token BAD_LCOM }
-  @rcom { Token BAD_RCOM } -- Spec does not specify this as bad comment
-                           -- But any other alternatives are bad
-
+  id 				{ Token IDENTIFIER _}
+  num 		  		{ Token NUMBER _}
 ---- Operator Precedence ----
 
 -- boolean
-
 %left \\\/
 %left \/\\
 
 -- relational
-
 %nonassoc '<' '<=' '>' '>='
 %nonassoc '/='
 
 -- integer
-
 %left '+' '-'
 %left '*' '/' '%'
 
 -- canvas
-
 %left '&' '~' 
 
 -- unary
@@ -175,25 +147,25 @@ Statement_List
 	| Statement_List ';' Statement      {$1 : $3}
 
 Statement
-	: '{' Declare_List '|' Statement_List '}'
-	| '{' Statement_List '}'
+	: '{' Declare_List '|' Statement_List '}' 		{Block $2 $4}
+	| '{' Statement_List '}' 						{Block [] $2}
 
-	| IDENTIFIER '=' Expression
+	| IDENTIFIER '=' Expression 					{Equals $1 $3 ((\(Id_p) -> p) $1)}
 
-	| READ IDENTIFIER
-	| WRITE IDENTIFIER
+	| READ IDENTIFIER 								{Read $2 (tp $1)}					
+	| WRITE IDENTIFIER								{Write $2 (tp $1)}
 
-	-- if like, statement
-	| '(' Expression '?' Statement_List ')'
-	| '(' Expression '?' Statement_List ':' Statement_List ')'
+	-- Conditional statement
+	| '(' Expression '?' Statement_List ')' 					{If $2 $4 Nothing}					
+	| '(' Expression '?' Statement_List ':' Statement_List ')'	{If $2 $4 (Just $7)}
 
-    -- for like, statement
-	|'[' Expression '..' Expression '|' Statement_List ']'
-	|'[' IDENTIFIER ':' Expression '..' Expression '|' Statement_List ']'
+    -- Loop statement
+	|'[' Expression '..' Expression '|' Statement_List ']'					{For $2 $4 $6}
+	|'[' IDENTIFIER ':' Expression '..' Expression '|' Statement_List ']'	
 
 Declare_List
 	: Data_Type Declare_Id 					{map (Declare_List $1) $2}
-	| Declare_List Data_Type Declare_Id		{}
+	| Declare_List Data_Type Declare_Id		
 
 Declare_Id
 	: IDENTIFIER 							{Id (extract $1) (tp $1)}
