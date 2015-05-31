@@ -161,8 +161,8 @@ Expression
 	|	Expression ''' 				{Unary (Traspose (tp $2)) $1}
 
 	| '(' Expression ')' 	{$2}
-	| NUMBER				{IntConst (extract' $1)}
-	| Bool 					{StrConst (extract $1)}
+	| NUMBER				{IntConst (extract $1)}
+	| Bool 					{BoolConst $1}
 	| IDENTIFIER 			{Var $1} 
 
 
@@ -192,19 +192,36 @@ Statement
 	|'[' IDENTIFIER ':' Expression '..' Expression '|' Statement_List ']'
 
 Declare_List
-	: Data_Type Declare_Id
-	| Declare_List Data_Type Declare_Id
+	: Data_Type Declare_Id 					{map (Declare_List $1) $2}
+	| Declare_List Data_Type Declare_Id		{}
 
 Declare_Id
-	: IDENTIFIER
+	: IDENTIFIER 							{Id (extract $1) (tp $1)}
 	| Declare_Id IDENTIFIER 
 
 Data_Type
-	: PERCENT	
-	| AT
-	| CANVAS
+	: PERCENT		{IntType}
+	| AT 			{BoolType}
+	| CANVAS 		{CanvasType}
 
+{
+	extract :: Token -> Int
+	extract (Token NUMBER n _) = n
 
+	parseError :: [Token] -> a
+	parseError l = case l of
+		[] -> error $ "Unexpected EOF"
+		_  -> error $ "Unexpected " ++ show (head l)
+
+	parser :: String -> String -> IO ()
+	parser text name = do
+		putStrLn $ "Parser (" ++ name ++ "):\n"
+		let toks = alexScanTokens text
+		if any isTokenError toks
+			then mapM_ printError $ filter isTokenError toks
+			else putStrLn . show . parsr $ toks
+		putStrLn ""
+}
 
 
 
