@@ -36,8 +36,16 @@ STATEMENT -> TokenLCurly DECLARE_LIST TokenPipe STATEMENT_LIST TokenRCurly
 
 
 EXPRESSION -> TokenNumber
-			| BOOL
+			| TokenTrue
+			| TokenFalse
 			| TokenIdentifier
+			| TokenCanvas1
+			| TokenCanvas2
+			| TokenCanvas3
+			| TokenCanvas4
+			| TokenCanvas5
+			| TokenCanvas6
+			| TokenCanvas7
 
 			| TokenRParenthesis EXPRESSION TokenLParenthesis
 
@@ -71,7 +79,4 @@ EXPRESSION -> TokenNumber
 			| EXPRESSION TokenLog_And EXPRESSION
 
 			-- Unary Boolean Operator
-			| 				TokenLog_Neg EXPRESSION 
-
-BOOL -> TokenTrue
-	  | TokenFalse
+			| EXPRESSION TokenLog_Neg 
