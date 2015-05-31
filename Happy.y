@@ -79,7 +79,8 @@
 ---- Operator Precedence ----
 
 -- bool precedence
--- MISSING
+%left '\/' 
+%left '/\\'
 
 -- relational
 %nonassoc '<' '<=' '>' '>='
