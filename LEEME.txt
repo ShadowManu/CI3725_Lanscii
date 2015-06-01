@@ -6,6 +6,7 @@
 
 -- Decisiones de Implementacion:
 
+-- Etapa 1: Lexer
 1. Lenguaje: decidimos usar Haskell por las facilidades que ofrece así
 como el reto funcional que igualmente trae. Sin embargo, el codigo resultante
 ha terminado siendo sencillo (salvo algunas expresiones regulares)
@@ -19,6 +20,18 @@ los simbolos encontrados en el archivo son considerados tokens. Luego de leer
 todos los tokens, si existen tokens de malos caracteres o de malos comentarios,
 se filtran apropiadamente para solo imprimir los debidos (funcion TokensFilter).
 
+--- Etapa 2: Parser
+1. Modularización: seguimos la recomendacion y el proyecto se divide en varios
+archivos
+  a. Alex.x: lexer de Alex
+  b. Happy.y: parser de Happy
+  c. Display.hs: typeclasses propias para impresion
+  d. AST.hs: definicion de tipos de datos para el arbol sintactico
+  e. Main.hs: programa principal
+
+2. Manejo de errores: no conocemos mucho de Monads (aun) y la implementacion actual
+de la rutina de errores (parseError) es hecha sin mucha revision.
+
 -- Estado Actual del Proyecto:
 
 Funcionando bajo la interpretación que tuvimos de la especificacion del lenguaje
@@ -26,12 +39,18 @@ y entrega.
 
 -- Problemas Presentes
 
-Ninguno conocido.
+Al momento de correr Happy, este indica 64 shift-reduce conflicts. No fallo en
+las pruebas de entrada que realizamos, pero nos quedo pendiente quiza indagar
+un poco mas en el tema.
 
 -- Comentarios respecto al proyecto
 
+--- Etapa 1: Lexer
 No se especifica que hacer con un cerrado de comentarios imcompleto.
 Decidimos interpretarlo como un error de comentario.
 
 Este proyecto esta bajo control de versiones en el repositorio PRIVADO
 https://github.com/ShadowManu/CI3725_Lanscii , administrado por Manuel Pacheco.
+
+--- Etapa 2: Parser
+(Ninguno)
