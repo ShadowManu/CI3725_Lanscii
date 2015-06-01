@@ -6,8 +6,9 @@
 {
 module Happy (happyParser) where
 
-import AST
 import Alex
+import AST
+import Display
 }
 
 %name happyParser
@@ -183,6 +184,6 @@ EXPRESSION : int  { NumExp (read $1 :: Int) }
 {
 
 parseError :: [Token] -> a
-parseError _ = error "Parse error (NOT FULLY IMPLEMENTED)"
+parseError x = error $ "Parse error: " ++ (display $ head x)
 
 }
