@@ -4,7 +4,7 @@
 --     Manuel Pacheco - 10-10524
 --     Nicolas Mañan - 06-39883
 {
-module MyHappy (happyParser) where
+module Happy (happyParser) where
 
 import AST
 import Alex

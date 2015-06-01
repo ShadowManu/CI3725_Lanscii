@@ -6,9 +6,9 @@
 
 module Main (main) where
 
+import Happy
 import System.Environment
 import Alex
-import MyHappy
 
 main = do
   args <- getArgs
