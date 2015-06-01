@@ -8,7 +8,7 @@
 module Alex
 ( Token(..)
 , TkType(..)
-, canToken
+, noParseToken
 , tokenize
 ) where
 
@@ -159,6 +159,10 @@ isBadComment :: Token -> Bool
 isBadComment (Token BAD_LCOM _ _) = True
 isBadComment (Token BAD_RCOM _ _) = True
 isBadComment x = False
+
+-- Helper for token users
+noParseToken :: Token -> Bool
+noParseToken x = isBadToken x || isBadComment x
 
 -- Given a list of tokens, gives only good tokens,
 -- bad char tokens or bad comment tokens

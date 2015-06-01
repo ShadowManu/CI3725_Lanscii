@@ -17,4 +17,6 @@ main = do
   s <- readFile . head $ args
   let tokens = tokenize s
       tree = happyParser tokens
-  mapM_ putStrLn . pDisplay $ tree
+  if (any (noParseToken) tokens)
+    then mapM_ (putStrLn . display) tokens
+    else mapM_ putStrLn . pDisplay $ tree
