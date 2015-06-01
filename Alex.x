@@ -8,10 +8,11 @@
 module Alex
 ( Token(..)
 , TkType(..)
-, Display(..)
 , canToken
 , tokenize
 ) where
+
+import Display
 
 }
 
@@ -131,10 +132,6 @@ data TkType =
   IDENTIFIER |
   BAD_CHAR | BAD_LCOM | BAD_RCOM
   deriving (Show,Eq)
-
--- Custom typeclass to display tokens
-class Display a where
-  display :: a -> String
 
 -- How a token is displayed (printed)
 instance Display Token where

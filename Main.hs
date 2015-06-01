@@ -6,11 +6,15 @@
 
 module Main (main) where
 
-import Happy
 import System.Environment
 import Alex
+import Happy
+import Display
 
+main :: IO ()
 main = do
   args <- getArgs
   s <- readFile . head $ args
-  mapM_ (putStrLn . display) . tokenize $ s
+  let tokens = tokenize s
+      tree = happyParser tokens
+  mapM_ putStrLn . pDisplay $ tree

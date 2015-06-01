@@ -70,7 +70,6 @@ import Alex
   '-' { Token MINUS ap $$ }
   '*' { Token ASTERISK ap $$ }
   '/' { Token SLASH ap $$ }
-  '%' { Token PERCENT ap $$ }
 
   -- Canvas Operators
   '~' { Token LINKING ap $$ }
@@ -93,7 +92,7 @@ import Alex
 
 -- Integer
 %left '+' '-'
-%left '*' '/' '\%'
+%left '*' '/' '%'
 
 -- Canvas
 %left '&' '~'
@@ -121,7 +120,7 @@ STATEMENT : '{' DECLARE_LIST '|' STATEMENT_LIST '}'  { BlockStmt (Just $2) $4 }
   | '[' IDENTIFIER ':' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet (Just $2) (Range $4 $6) $8 }
 
 STATEMENT_LIST : STATEMENT { [$1] }
-  | STATEMENT_LIST ';' STATEMENT  { $3 : $1 }
+  | STATEMENT_LIST ';' STATEMENT  { $1 ++ [$3] }
 
 DECLARE_LIST : DATA_TYPE DECLARE_ID  { map (\x ->($1,x)) $2 }
   | DECLARE_LIST DATA_TYPE DECLARE_ID { (map (\x ->($2,x)) $3) ++ $1 }
@@ -131,19 +130,21 @@ DATA_TYPE : '\%'  { IntType }
   | '!' { BoolType }
 
 DECLARE_ID : IDENTIFIER { [$1] }
-  | DECLARE_ID IDENTIFIER { $2 : $1 }
+  | DECLARE_ID IDENTIFIER { $1 ++ [$2] }
 
 IDENTIFIER : identifier { Identifier $1 }
 
-EXPRESSION : true  { BoolExp True }
+EXPRESSION : int  { NumExp (read $1 :: Int) }
+  | IDENTIFIER { VarExp $1 }
+  | true  { BoolExp True }
   | false { BoolExp False }
-  | '#' { CanvasExp [] }
-  | '<\>' { CanvasExp ["\\"] }
-  | '<|>' { CanvasExp ["|"] }
-  | '</>' { CanvasExp ["/"] }
-  | '<->' { CanvasExp ["-"] }
-  | '<_>' { CanvasExp ["_"] }
-  | '< >' { CanvasExp [" "] }
+  | '#' { CanvasExp "" }
+  | '<\>' { CanvasExp "\\" }
+  | '<|>' { CanvasExp "|" }
+  | '</>' { CanvasExp "/" }
+  | '<->' { CanvasExp "-" }
+  | '<_>' { CanvasExp "_" }
+  | '< >' { CanvasExp " " }
   | '(' EXPRESSION ')' { $2 }
 
   -- Arithmetic Operators
@@ -162,7 +163,7 @@ EXPRESSION : true  { BoolExp True }
 
   -- Unary Canvas Operator
   | '$' EXPRESSION { UnaryExp Rotate $2}
-  | EXPRESSION '\'' { UnaryExp Traspose $1 }
+  | EXPRESSION '\'' { UnaryExp Transpose $1 }
 
   -- Relational Operators
   | EXPRESSION '<=' EXPRESSION { BinaryExp LessEq $1 $3 }
