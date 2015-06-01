@@ -9,6 +9,7 @@ module Alex
 ( Token(..)
 , TkType(..)
 , Display(..)
+, canToken
 , tokenize
 ) where
 

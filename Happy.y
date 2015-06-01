@@ -1,177 +1,187 @@
+-- File: Happy.txt
+-- Description: lanscii language basic parser
+-- Authors:
+--     Manuel Pacheco - 10-10524
+--     Nicolas Mañan - 06-39883
 {
-	module Happy
-	( parser
-	, parsr
-	) where
+module MyHappy (happyParser) where
 
-	import Alex (alexScanTokens)
-	import Data.List
+import AST
+import Alex
 }
 
-%name parsr
-%tokentype {Token TkType}
-%error {parseError}
+%name happyParser
+%tokentype { Token }
+%error { parseError }
 
-
-%token 
+%token
 
   -- Basics
-  '{' 				{ Token LCURLY _}
-  '}' 				{ Token RCURLY _}
-  '|' 				{ Token PIPE _}
+  '{' { Token LCURLY ap $$ }
+  '}' { Token RCURLY ap $$ }
+  '|' { Token PIPE ap $$ }
 
   -- Constants
-  true      		{ Token TRUE _}
-  false     		{ Token FALSE _}
-  '<>'        		{ Token CANVAS _}
-  '<|>'        		{ Token CANVAS _}
-  '</>'        		{ Token CANVAS _}
-  '<_>'        		{ Token CANVAS _}
-  '<->'        		{ Token CANVAS _}
-  '<\>'        		{ Token CANVAS _}
-  '#'        		{ Token CANVAS _}
+  true  { Token TRUE ap $$ }
+  false { Token FALSE ap $$ }
+  int  { Token NUMBER ap $$ }
+  '#'    { Token CANVAS ap $$ }
+  '<\>'  { Token CANVAS ap $$ }
+  '<|>'  { Token CANVAS ap $$ }
+  '</>'  { Token CANVAS ap $$ }
+  '<->'  { Token CANVAS ap $$ }
+  '<_>'  { Token CANVAS ap $$ }
+  '< >'  { Token CANVAS ap $$ }
+
   -- Reserved Words
-  read 				{ Token READ _}
-  write 			{ Token WRITE _}
+  read  { Token READ ap $$ }
+  write { Token WRITE ap $$ }
 
   -- Type Symbols
-  '%' 				{ Token PERCENT _}
-  '!' 				{ Token EXCLAMATIONMARK _}
-  '@' 				{ Token AT _}
+  '\%' { Token PERCENT ap $$ }
+  '!' { Token EXCLAMATIONMARK ap $$ }
+  '@' { Token AT ap $$ }
 
   -- Common Operators
-  '=' 				{ Token EQUALS _}
-  ':' 				{ Token COLON _}
-  ';' 				{ Token SEMICOLON _}
-  '?' 				{ Token QUESTIONMARK _}
-  '(' 				{ Token LPARENTHESIS _}
-  ')' 				{ Token RPARENTHESIS _}
-  '[' 				{ Token LBRACKET _}
-  ']' 				{ Token RBRACKET _}
-  '..' 				{ Token RANGE _}
+  '='   { Token EQUALS ap $$ }
+  ':'   { Token COLON ap $$ }
+  ';'   { Token SEMICOLON ap $$ }
+  '?'   { Token QUESTIONMARK ap $$ }
+  '('   { Token LPARENTHESIS ap $$ }
+  ')'   { Token RPARENTHESIS ap $$ }
+  '['   { Token LBRACKET ap $$ }
+  ']'   { Token RBRACKET ap $$ }
+  '..'  { Token RANGE ap $$ }
 
   -- Boolean Operators
-  '\/' 				{ Token LOG_OR _}
-  '/\\' 			{ Token LOG_AND _}
-  '^' 				{ Token LOG_NEG _}
+  '\\/'  { Token LOG_OR ap $$ }
+  '/\\'  { Token LOG_AND ap $$ }
+  '^'   { Token LOG_NEG ap $$ }
 
   -- Relational Operators
-  '<=' 				{ Token REL_LE _}
-  '>=' 				{ Token REL_GE _}
-  '/='				{ Token REL_NE _}
-  '<'				{ Token REL_LT _}
-  '>'				{ Token REL_GT _}
+  '<='  { Token REL_LE ap $$ }
+  '>='  { Token REL_GE ap $$ }
+  '/='  { Token REL_NE ap $$ }
+  '<'   { Token REL_LT ap $$ }
+  '>'   { Token REL_GT ap $$ }
 
   -- Arithmetic Operators
-  '+' 				{ Token PLUS _}
-  '-' 				{ Token MINUS _}
-  '*' 				{ Token ASTERISK _}
-  '/' 				{ Token SLASH _}
+  '+' { Token PLUS ap $$ }
+  '-' { Token MINUS ap $$ }
+  '*' { Token ASTERISK ap $$ }
+  '/' { Token SLASH ap $$ }
+  '%' { Token PERCENT ap $$ }
 
   -- Canvas Operators
-  '~' 				{ Token LINKING _}
-  '&' 				{ Token AMPERSAND _}
-  '$' 				{ Token DOLLAR _}
-  '\'' 				{ Token APOSTROPHE _}
+  '~' { Token LINKING ap $$ }
+  '&' { Token AMPERSAND ap $$ }
+  '$' { Token DOLLAR ap $$ }
+  '\'' { Token APOSTROPHE ap $$ }
 
-  id 				{ Token IDENTIFIER _}
-  num 		  		{ Token NUMBER _}
+  -- Normal Symbols
+  identifier { Token IDENTIFIER ap $$ }
+
 ---- Operator Precedence ----
 
--- bool precedence
-%left '\/' 
+-- Bool precedence
+%left '\\/'
 %left '/\\'
 
--- relational
+-- Relational
 %nonassoc '<' '<=' '>' '>='
 %nonassoc '/='
 
--- integer
+-- Integer
 %left '+' '-'
-%left '*' '/' '%'
+%left '*' '/' '\%'
 
--- canvas
-%left '&' '~' 
+-- Canvas
+%left '&' '~'
 
--- unary
+-- Unary
 %left '^'
 %right '$'
 %left '\''
 
 %%
 
-Begin
-	:	Statement 			{$1}
+BEGIN : STATEMENT { Begin $1 }
 
+STATEMENT : '{' DECLARE_LIST '|' STATEMENT_LIST '}'  { BlockStmt (Just $2) $4 }
+  | '{' STATEMENT_LIST '}'  { BlockStmt Nothing $2 }
+  | IDENTIFIER '=' EXPRESSION { Assignment $1 $3 }
+  | read IDENTIFIER { Read $2 }
+  | write IDENTIFIER { Write $2 }
 
-Expression
-	:	Expression '+' Expression 	{$1 $3}
-	|	Expression '-' Expression 	{$1 $3}
-	|	Expression '*' Expression   {$1 $3}
-	|	Expression '/' Expression   {$1 $3}
-	|	Expression '%' Expression   {$1 $3}
+  | '(' EXPRESSION '?' STATEMENT_LIST ')' { If $2 $4 Nothing }
+  | '(' EXPRESSION '?' STATEMENT_LIST ':' STATEMENT_LIST ')' { If $2 $4 (Just $6) }
 
-	|	Expression '<' Expression   {$1 $3}
-	|	Expression '>' Expression   {$1 $3}
-	|	Expression '<=' Expression  {$1 $3}
-	|	Expression '>=' Expression  {$1 $3}
-	|	Expression '/=' Expression  {$1 $3}
+  | '[' EXPRESSION '|' STATEMENT_LIST '}' { ForIn $2 $4 }
+  | '[' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet Nothing (Range $2 $4) $6 }
+  | '[' IDENTIFIER ':' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet (Just $2) (Range $4 $6) $8 }
 
-	| Expression '\/' Expression	{$1 $3}
-	| Expression '/\\' Expression	{$1 $3}
+STATEMENT_LIST : STATEMENT { [$1] }
+  | STATEMENT_LIST ';' STATEMENT  { $3 : $1 }
 
-	|	Expression '~' Expression   {$1 $3}
-	|	Expression '&' Expression   {$1 $3}
+DECLARE_LIST : DATA_TYPE DECLARE_ID  { map (\x ->($1,x)) $2 }
+  | DECLARE_LIST DATA_TYPE DECLARE_ID { (map (\x ->($2,x)) $3) ++ $1 }
 
-	|	 '$' Expression             { $2 }
-	|	 '-' Expression 			{ $2}
+DATA_TYPE : '\%'  { IntType }
+  | '@' { CanvasType }
+  | '!' { BoolType }
 
-	|	Expression '^' 				{ $1}
-	|	Expression '\'' 				{ $1}
+DECLARE_ID : IDENTIFIER { [$1] }
+  | DECLARE_ID IDENTIFIER { $2 : $1 }
 
-	| '(' Expression ')' 	{$2}
-	| true 				{}
-	| false 			{}
-	| num				{}					
-	| id 				{}
-	| '<>'				{}
-	| '<|>'				{}
-	| '<\>'				{}
-	| '</>'				{}
-	| '<_>'				{}
-	| '<->'				{}
-	| '#'				{}
+IDENTIFIER : identifier { Identifier $1 }
 
-Statement_List
-	: Statement 						{$1}
-	| Statement_List ';' Statement      {$1  $3}
+EXPRESSION : true  { BoolExp True }
+  | false { BoolExp False }
+  | '#' { CanvasExp [] }
+  | '<\>' { CanvasExp ["\\"] }
+  | '<|>' { CanvasExp ["|"] }
+  | '</>' { CanvasExp ["/"] }
+  | '<->' { CanvasExp ["-"] }
+  | '<_>' { CanvasExp ["_"] }
+  | '< >' { CanvasExp [" "] }
+  | '(' EXPRESSION ')' { $2 }
 
-Statement
-	: '{' Declare_List '|' Statement_List '}' 		{$2 $4}
-	| '{' Statement_List '}' 						{$2}
+  -- Arithmetic Operators
+  | EXPRESSION '+' EXPRESSION { BinaryExp Plus $1 $3 }
+  | EXPRESSION '-' EXPRESSION { BinaryExp Minus $1 $3 }
+  | EXPRESSION '*' EXPRESSION { BinaryExp Times $1 $3 }
+  | EXPRESSION '/' EXPRESSION { BinaryExp Div $1 $3 }
+  | EXPRESSION '\%' EXPRESSION { BinaryExp Mod $1 $3 }
 
-	| id '=' Expression 					{$1 $3 }
+  -- Unary Arithmetic Operator
+  | '-' EXPRESSION  { UnaryExp Negative $2 }
 
-	| read id 								{}					
-	| write id								{}
+  -- Canvas Operators
+  | EXPRESSION '~' EXPRESSION { BinaryExp ConcatH $1 $3 }
+  | EXPRESSION '&' EXPRESSION { BinaryExp ConcatV $1 $3 }
 
-	-- Conditional statement
-	| '(' Expression '?' Statement_List ')' 					{$2 $4}					
-	| '(' Expression '?' Statement_List ':' Statement_List ')'	{$2 $4}
+  -- Unary Canvas Operator
+  | '$' EXPRESSION { UnaryExp Rotate $2}
+  | EXPRESSION '\'' { UnaryExp Traspose $1 }
 
-    -- Loop statement
-	|'[' Expression '..' Expression '|' Statement_List ']'					{$2 $4 $6}
-	|'[' id ':' Expression '..' Expression '|' Statement_List ']'	{$4 $6 $8}
+  -- Relational Operators
+  | EXPRESSION '<=' EXPRESSION { BinaryExp LessEq $1 $3 }
+  | EXPRESSION '>=' EXPRESSION { BinaryExp GreatEq $1 $3 }
+  | EXPRESSION '/=' EXPRESSION { BinaryExp NotEqual $1 $3 }
+  | EXPRESSION '<' EXPRESSION { BinaryExp LessT $1 $3 }
+  | EXPRESSION '>' EXPRESSION { BinaryExp GreatT $1 $3 }
+  | EXPRESSION '=' EXPRESSION { BinaryExp Equal $1 $3 }
 
-Declare_List
-	: Data_Type Declare_Id 					{$1 $2}
-	| Declare_List Data_Type Declare_Id		{$1 $2 $3}
+  -- Boolean Operators
+  | EXPRESSION '\\/' EXPRESSION { BinaryExp Or $1 $3 }
+  | EXPRESSION '/\\' EXPRESSION { BinaryExp And $1 $3 }
 
-Declare_Id
-	: id							{}
-	| Declare_Id id 				{$1}
+  -- Unary Boolean Operator
+  | EXPRESSION '^' { UnaryExp Negate $1 }
 
-Data_Type
-	: '%'					{}	
-	| '@' 					{}
-	| '!' 					{}
+{
+
+parseError :: [Token] -> a
+parseError _ = error "Parse error (NOT FULLY IMPLEMENTED)"
+
+}

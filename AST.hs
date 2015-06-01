@@ -4,27 +4,28 @@ module AST
 , DeclareList(..)
 , DataType(..)
 , Identifier(..)
+, Range(..)
 , Expression(..)
 , BinaryOp(..)
 , UnaryOp(..)
 ) where
 
-import Alex
-
-data Begin = Statement
+data Begin = Begin Statement
   deriving (Show, Eq)
 
 data Statement
-  = BlockStmt DeclareList [Statement]
+  = BlockStmt (Maybe DeclareList) StatementList
   | Assignment Identifier Expression
   | Read Identifier
   | Write Identifier
-  | If Expression Statement (Maybe Statement)
-  | For (Maybe Identifier) Expression Statement
-  deriving (Eq, Show)
+  | If Expression StatementList (Maybe StatementList)
+  | ForIn Expression StatementList
+  | ForDet (Maybe Identifier) Range StatementList
+  deriving (Show, Eq)
 
-data DeclareList = DeclareList [(DataType, Identifier)]
-  deriving (Eq, Show)
+type DeclareList = [(DataType, Identifier)]
+
+type StatementList = [Statement]
 
 data DataType
   = BoolType
@@ -34,6 +35,9 @@ data DataType
   deriving (Show, Eq)
 
 data Identifier = Identifier String
+  deriving (Show, Eq)
+
+data Range = Range Expression Expression
   deriving (Show, Eq)
 
 data Expression
@@ -52,6 +56,7 @@ data BinaryOp
   | Times
   | LessT
   | GreatT
+  | Equal
   | NotEqual
   | LessEq
   | GreatEq
@@ -59,14 +64,13 @@ data BinaryOp
   | ConcatV
   | Or
   | And
-  | Range
   deriving (Show, Eq)
 
 data UnaryOp
   = Rotate
-  | Negate
+  | Negative
   | Traspose
-  | Logic_Negate
+  | Negate
   deriving (Show, Eq)
 
 -------------------------------

@@ -19,4 +19,5 @@ cabal.sandbox.config
 
 // Generated source code and binaries
 Alex.hs
+Happy.hs
 lanscii
