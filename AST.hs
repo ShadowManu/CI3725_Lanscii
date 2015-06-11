@@ -91,7 +91,7 @@ instance (PDisplay a) => PDisplay (Maybe a) where
   pDisplay (Just x) = pDisplay x
   pDisplay Nothing = []
 
--- Common instance for Maybe types
+-- Common instance for List types
 instance (PDisplay a) => PDisplay ([a]) where
   pDisplay = concatMap (pDisplay)
 
