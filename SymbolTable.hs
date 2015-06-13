@@ -1,12 +1,22 @@
 module SymbolTable
-where
+( Symbol(..)
+, SymbolTable
+, new
+, insert
+, lookup
+, lookupComplete
+) where
 
 {- OPTIONS_GHC -XFlexibleInstances -XTypeSynonymInstances -}
+
+import Prelude hiding (lookup)
+import Data.Maybe
 
 import qualified Data.HashTable.IO as H
 import qualified Data.HashTable.ST.Basic as B
 import qualified GHC.Prim as P
 
+import AST
 import Display
 
 -----------------------------------------
@@ -25,7 +35,7 @@ type TreeTrail a = [Tree a]
 
 -- Type for symbol information
 -- TODO to be fully implemented
-data Symbol = Symbol String
+data Symbol = Symbol String DataType
   deriving (Eq, Show)
 
 -- Concrete type for the Hash Table for a local Symbol Table
@@ -37,9 +47,9 @@ newtype SymbolTable = SymbolTable (Tree Table, TreeTrail Table)
 -- Type Synonym for SymbolTable printing
 type Results = [(String, Symbol)]
 
------------------------------------
----- Symbol Table minimal functions
------------------------------------
+------------------------------------------------------------------
+---- Symbol Table functions operating directly with the hashtables
+------------------------------------------------------------------
 
 -- New Symbol Table
 new :: IO SymbolTable
@@ -48,11 +58,23 @@ new = do
   return (SymbolTable (Tree newTable [], []))
 
 -- Insert an element on a Symbol Table
-insert :: String -> Symbol -> SymbolTable -> IO SymbolTable
--- #! TESTING TODO complete
-insert str sym st@(SymbolTable (Tree tab childs, trail)) = do
+insert :: SymbolTable -> String -> Symbol -> IO SymbolTable
+insert st@(SymbolTable (Tree tab childs, trail)) str sym = do
   H.insert tab str sym
   return st
+
+-- Get a symbol in the local Symbol Table (if it exists) using a key
+lookup :: SymbolTable -> String -> IO (Maybe Symbol)
+lookup st@(SymbolTable (Tree tab childs, trail)) = H.lookup tab
+
+-- Get a symbol in the Symbol Tables in scope (if it exists) using a key
+lookupComplete :: SymbolTable -> String -> IO (Maybe Symbol)
+lookupComplete st@(SymbolTable (local, Tree parent siblings : rest)) str = do
+  -- Local lookup
+  sym <- lookup st str
+  -- If found
+  if isJust sym then return sym
+  else lookupComplete (SymbolTable (Tree parent (local:siblings), rest)) str
 
 -----------------------------------
 ---- Display instances por printing
