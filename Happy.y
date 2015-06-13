@@ -89,11 +89,11 @@ import Display
 
 -- Relational
 %nonassoc '<' '<=' '>' '>='
-%nonassoc '/='
+%nonassoc '/=' '='
 
 -- Integer
 %left '+' '-'
-%left '*' '/' '%'
+%left '*' '/' '\%'
 
 -- Canvas
 %left '&' '~'
