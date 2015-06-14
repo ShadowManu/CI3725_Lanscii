@@ -93,7 +93,7 @@ instance (PDisplay a) => PDisplay (Maybe a) where
 
 -- Common instance for List types
 instance (PDisplay a) => PDisplay ([a]) where
-  pDisplay = concatMap (pDisplay)
+  pDisplay = concatMap pDisplay
 
 -- Instance for Begin
 instance PDisplay Begin where
@@ -101,7 +101,7 @@ instance PDisplay Begin where
 
 -- Instance for Statement
 instance PDisplay Statement where
-  pDisplay (BlockStmt dl sl) = pDisplay sl -- Ommited dl
+  pDisplay (BlockStmt _ sl) = pDisplay sl -- Ommited Declaration list
   pDisplay (Assignment iden expr) = concat [["ASSIGN:"], indented iden, indented expr]
   pDisplay (Read iden) = concat [["READ:"], indented iden]
   pDisplay (Write iden) = concat [["WRITE:"], indented iden]

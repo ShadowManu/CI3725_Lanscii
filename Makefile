@@ -1,5 +1,5 @@
 all: alex happy
-	ghc --make Main.hs -o lanscii
+	ghc -XFlexibleInstances --make Main.hs -o lanscii
 
 alex:
 	alex Alex.x
