@@ -32,7 +32,7 @@ main = do
       -- Process the data
       SC.Result (st, out) <- SC.process tree initRes
       if not $ null out
-        then mapM_ putStrLn out
+        then mapM_ putStrLn $ reverse out
         else do
           text <- sDisplay st
           mapM_ putStrLn text

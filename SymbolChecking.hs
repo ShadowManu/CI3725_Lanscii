@@ -136,12 +136,17 @@ instance Process Range where
     -- Check both expressions
     process e1 res >>= process e2
 
+-- Helper because isRight is not defined in older Haskell Libraries
+myIsRight :: Either a b -> Bool
+myIsRight (Left _) = False
+myIsRight (Right _) = True
+
 -- Process Expressions
 instance Process Expression where
   process expr res@(Result (st, out)) = do
     t <- getExpType expr res
     -- When the type of the expression is correct
-    if isRight t
+    if myIsRight t
     -- There is nothing to report
     then return res
     -- If it isnt, report the (first found) problem on the expression
