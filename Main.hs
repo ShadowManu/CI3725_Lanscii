@@ -31,7 +31,7 @@ main = do
       initRes <- SC.newResult
       -- Process the data
       SC.Result (st, out) <- SC.process tree initRes
-      if null out
+      if not $ null out
         then mapM_ putStrLn out
         else do
           text <- sDisplay st

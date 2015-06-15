@@ -52,7 +52,7 @@ instance Process Statement where
   process (Assignment (Identifier iden) expr) res@(Result (st, out)) = do
     -- Check if the identifier is in scope (possibly not local)
     sym <- ST.lookupComplete st iden
-    if isNothing sym
+    if isJust sym
     -- If it is, just check the expression
     then process expr res
     -- iF its not, add an error and check the expression
