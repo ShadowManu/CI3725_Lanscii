@@ -3,6 +3,7 @@ where
 
 import Prelude hiding (lookup)
 import Data.Maybe
+import Data.Either
 
 import qualified SymbolTable as ST
 import AST
@@ -121,71 +122,99 @@ instance Process (DataType, Identifier) where
 -- Process range expressions
 instance Process Range where
   process (Range e1 e2) res =
-    -- TODO Type Checking
-    -- And check both Expressions
+    -- Check both expressions
     process e1 res >>= process e2
 
 -- Process Expressions
 instance Process Expression where
-  process (BinaryExp op e1 e2) res =
-    process e1 res >>= process e2
-  -- #! TODO COMPLETE
+  process expr res@(Result (st, out)) = do
+    t <- getExpType expr res
+    -- When the type of the expression is correct
+    if isRight t
+    -- There is nothing to report
+    then return res
+    -- If it isnt, report the (first found) problem on the expression
+    else case t of
+      -- Reporting Undeclared variable in expression
+      Left (Undeclared var, expr) ->
+        let extra = "Variable " ++ var ++ " not declared in expression: " ++ show expr
+        in return $ Result (st, extra:out)
+      -- Reporting Incompatible binary expressions
+      Left (Incompatible, expr@(BinaryExp op e1 e2)) ->
+        let extra = "Incompatible use of operator " ++ show op ++ " between expressions " ++ show e1 ++ " and " ++ show e2
+        in return $ Result (st, extra:out)
+      -- Reporting Incompatible binary expressions
+      Left (Incompatible, expr@(UnaryExp op e)) ->
+        let extra = "Incompatible use of operator " ++ show op ++ " with the expression " ++ show e
+        in return $ Result (st, extra:out)
 
 -- Type Checking of Expressions
 
+data ExprError = Undeclared String | Incompatible
+type ExpTypeResult = IO (Either (ExprError, Expression) DataType)
+
 -- Main Type checker function
-getExpType :: Expression -> Result -> IO (Maybe DataType)
+getExpType :: Expression -> Result -> ExpTypeResult
 getExpType (BinaryExp op e1 e2) res = compatibleBinExp op e1 e2 res
 getExpType (UnaryExp op e) res = compatibleUnExp op e res
-getExpType (NumExp _) _ = return $ Just IntType
-getExpType (BoolExp _) _ = return $ Just BoolType
-getExpType (CanvasExp _) _ = return $ Just CanvasType
-getExpType (VarExp (Identifier iden)) res@(Result (st, out)) = do
+getExpType (NumExp _) _ = return $ Right IntType
+getExpType (BoolExp _) _ = return $ Right BoolType
+getExpType (CanvasExp _) _ = return $ Right CanvasType
+getExpType var@(VarExp (Identifier iden)) res@(Result (st, out)) = do
   sym <- ST.lookup st iden
-  -- If the symbol is defined
-  if isJust sym
-  -- Use its type as the return value
-  then return . Just . ST.getType . fromJust $ sym
-  -- If not, then no type is correct
-  else return Nothing
+  return
+    -- If the symbol is defined
+    (if isJust sym
+    -- Use its type as the return value
+    then Right . ST.getType . fromJust $ sym
+    -- If not, then no type is correct
+    else Left (Undeclared iden, var))
 
 -- Type Checker helper for binary epressions
-compatibleBinExp :: BinaryOp -> Expression -> Expression -> Result -> IO (Maybe DataType)
+compatibleBinExp :: BinaryOp -> Expression -> Expression -> Result -> ExpTypeResult
 compatibleBinExp op e1 e2 res = do
   t1 <- getExpType e1 res
   t2 <- getExpType e2 res
   case (t1, op, t2) of
   -- Logical
-    (Just BoolType, Or, Just BoolType) -> return $ Just BoolType
-    (Just BoolType, And, Just BoolType) -> return $ Just BoolType
+    (Right BoolType, Or, Right BoolType) -> return $ Right BoolType
+    (Right BoolType, And, Right BoolType) -> return $ Right BoolType
     -- Arithmetic
-    (Just IntType, Plus, Just IntType) -> return $ Just IntType
-    (Just IntType, Minus, Just IntType) -> return $ Just IntType
-    (Just IntType, Times, Just IntType) -> return $ Just IntType
-    (Just IntType, Div, Just IntType) -> return $ Just IntType
-    (Just IntType, Mod, Just IntType) -> return $ Just IntType
+    (Right IntType, Plus, Right IntType) -> return $ Right IntType
+    (Right IntType, Minus, Right IntType) -> return $ Right IntType
+    (Right IntType, Times, Right IntType) -> return $ Right IntType
+    (Right IntType, Div, Right IntType) -> return $ Right IntType
+    (Right IntType, Mod, Right IntType) -> return $ Right IntType
     -- Relational
-    (Just IntType, LessT, Just IntType) -> return $ Just BoolType
-    (Just IntType, GreatT, Just IntType) -> return $ Just BoolType
-    (Just IntType, Equal, Just IntType) -> return $ Just BoolType
-    (Just IntType, NotEqual, Just IntType) -> return $ Just BoolType
-    (Just IntType, LessEq, Just IntType) -> return $ Just BoolType
-    (Just IntType, GreatEq, Just IntType) -> return $ Just BoolType
+    (Right IntType, LessT, Right IntType) -> return $ Right BoolType
+    (Right IntType, GreatT, Right IntType) -> return $ Right BoolType
+    (Right IntType, Equal, Right IntType) -> return $ Right BoolType
+    (Right IntType, NotEqual, Right IntType) -> return $ Right BoolType
+    (Right IntType, LessEq, Right IntType) -> return $ Right BoolType
+    (Right IntType, GreatEq, Right IntType) -> return $ Right BoolType
     -- Canvas
-    (Just CanvasType, ConcatH, Just CanvasType) -> return $ Just CanvasType
-    (Just CanvasType, ConcatV, Just CanvasType) -> return $ Just CanvasType
-    _ -> return Nothing
+    (Right CanvasType, ConcatH, Right CanvasType) -> return $ Right CanvasType
+    (Right CanvasType, ConcatV, Right CanvasType) -> return $ Right CanvasType
+    -- Wrong type expressions
+    (val@(Left (Undeclared _, _)), _, _) -> return val
+    (_, _, val@(Left (Undeclared _, _))) -> return val
+    (val@(Left (Incompatible, _)), _, _) -> return val
+    (_, _, val@(Left (Incompatible, _))) -> return val
+    _ -> return $ Left (Incompatible, BinaryExp op e1 e2)
 
 -- Type Checker for unary expressions
-compatibleUnExp :: UnaryOp -> Expression -> Result -> IO (Maybe DataType)
+compatibleUnExp :: UnaryOp -> Expression -> Result -> ExpTypeResult
 compatibleUnExp op e res = do
   t <- getExpType e res
   case (op, t) of
   -- Arithmetic
-    (Negative, Just IntType) -> return $ Just IntType
+    (Negative, Right IntType) -> return $ Right IntType
     -- Canvas
-    (Rotate, Just CanvasType) -> return $ Just CanvasType
-    (Transpose, Just CanvasType) -> return $ Just CanvasType
+    (Rotate, Right CanvasType) -> return $ Right CanvasType
+    (Transpose, Right CanvasType) -> return $ Right CanvasType
     -- Boolean
-    (Negate, Just BoolType) -> return $ Just BoolType
-    _ -> return Nothing
+    (Negate, Right BoolType) -> return $ Right BoolType
+    -- Wrong Type Expressions
+    (_, val@(Left (Undeclared _, _))) -> return val
+    (_, val@(Left (Incompatible, _))) -> return val
+    _ -> return $ Left (Incompatible, UnaryExp op e)
