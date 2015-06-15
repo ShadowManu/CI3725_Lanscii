@@ -32,16 +32,31 @@ archivos
 2. Manejo de errores: no conocemos mucho de Monads (aun) y la implementacion actual
 de la rutina de errores (parseError) es hecha sin mucha revision.
 
+-- Etapa 3: SymbolTable
+1. Archivos principales de la Etapa: se agregan los archivos SymbolTable.hs, donde
+se definen tipos e interfaces de uso de una Tabla de Simbolos (incluyendo impresion);
+y SymbolChecking.hs, donde se realiza realmente el procesamiento del AST (esto
+incluye problemas de declaracion, y verificaciones de tipos)
+
+2. Monad IO: el uso de tablas de hash obligo a encapsular basicamente todo tipo
+de operaciones en el Monad IO. Beneficioso en varios casos (mantener estados) y
+dificil en otros.
+
+3. Modificaciones a existentes: una clase extra SDisplay en Display.hs y las
+modificaciones necesarias a Main.hs
+
 -- Estado Actual del Proyecto:
 
-Funcionando bajo la interpretación que tuvimos de la especificacion del lenguaje
-y entrega.
+Se arreglaron los shift/reduce conflicts (agregar un par de reglas de precedencia)
+Se intenta implementar todas los requisitos de esta etapa mas quizá hayan verificaciones
+(principalmente de tipo) que por error humano no se colocaron donde se debe.
+Además, la impresión no es la mas hermosa (se utilizan los derived show en varios
+casos) por razones de tiempo.
 
 -- Problemas Presentes
 
-Al momento de correr Happy, este indica 64 shift-reduce conflicts. No fallo en
-las pruebas de entrada que realizamos, pero nos quedo pendiente quiza indagar
-un poco mas en el tema.
+No nos dio tiempo de indagar de como hacer un archivo de cabal. Requerimos el
+paquete hashtables que puede ser instalado con "cabal install hashtables".
 
 -- Comentarios respecto al proyecto
 
@@ -54,3 +69,10 @@ https://github.com/ShadowManu/CI3725_Lanscii , administrado por Manuel Pacheco.
 
 --- Etapa 2: Parser
 (Ninguno)
+
+--- Etapa 3: Symbol Table
+Esta etapa es en la que mayor cantidad de código he escrito y no era nada facil
+mezclandolo con una interfaz de IO y usando HashTables en Haskell. Era factible
+realizarlo pero en una cantidad mayor de tiempo (considerando que esta entrega
+siendo la mas dificil ha tenido el menor tiempo). Sin embargo, estamos a la
+espera de feedback de los mayores errores que pueda tener esta entrega.
