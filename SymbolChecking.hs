@@ -121,12 +121,71 @@ instance Process (DataType, Identifier) where
 -- Process range expressions
 instance Process Range where
   process (Range e1 e2) res =
-    -- Just check both Expressions
+    -- TODO Type Checking
+    -- And check both Expressions
     process e1 res >>= process e2
 
 -- Process Expressions
 instance Process Expression where
-  process (BinaryExp op e1 e2) res = do
-    newRes <- process e1 res
-    process e2 newRes
-  -- #! TODO COMPLETE OTHER PATTERNS
+  process (BinaryExp op e1 e2) res =
+    process e1 res >>= process e2
+  -- #! TODO COMPLETE
+
+-- Type Checking of Expressions
+
+-- Main Type checker function
+getExpType :: Expression -> Result -> IO (Maybe DataType)
+getExpType (BinaryExp op e1 e2) res = compatibleBinExp op e1 e2 res
+getExpType (UnaryExp op e) res = compatibleUnExp op e res
+getExpType (NumExp _) _ = return $ Just IntType
+getExpType (BoolExp _) _ = return $ Just BoolType
+getExpType (CanvasExp _) _ = return $ Just CanvasType
+getExpType (VarExp (Identifier iden)) res@(Result (st, out)) = do
+  sym <- ST.lookup st iden
+  -- If the symbol is defined
+  if isJust sym
+  -- Use its type as the return value
+  then return . Just . ST.getType . fromJust $ sym
+  -- If not, then no type is correct
+  else return Nothing
+
+-- Type Checker helper for binary epressions
+compatibleBinExp :: BinaryOp -> Expression -> Expression -> Result -> IO (Maybe DataType)
+compatibleBinExp op e1 e2 res = do
+  t1 <- getExpType e1 res
+  t2 <- getExpType e2 res
+  case (t1, op, t2) of
+  -- Logical
+    (Just BoolType, Or, Just BoolType) -> return $ Just BoolType
+    (Just BoolType, And, Just BoolType) -> return $ Just BoolType
+    -- Arithmetic
+    (Just IntType, Plus, Just IntType) -> return $ Just IntType
+    (Just IntType, Minus, Just IntType) -> return $ Just IntType
+    (Just IntType, Times, Just IntType) -> return $ Just IntType
+    (Just IntType, Div, Just IntType) -> return $ Just IntType
+    (Just IntType, Mod, Just IntType) -> return $ Just IntType
+    -- Relational
+    (Just IntType, LessT, Just IntType) -> return $ Just BoolType
+    (Just IntType, GreatT, Just IntType) -> return $ Just BoolType
+    (Just IntType, Equal, Just IntType) -> return $ Just BoolType
+    (Just IntType, NotEqual, Just IntType) -> return $ Just BoolType
+    (Just IntType, LessEq, Just IntType) -> return $ Just BoolType
+    (Just IntType, GreatEq, Just IntType) -> return $ Just BoolType
+    -- Canvas
+    (Just CanvasType, ConcatH, Just CanvasType) -> return $ Just CanvasType
+    (Just CanvasType, ConcatV, Just CanvasType) -> return $ Just CanvasType
+    _ -> return Nothing
+
+-- Type Checker for unary expressions
+compatibleUnExp :: UnaryOp -> Expression -> Result -> IO (Maybe DataType)
+compatibleUnExp op e res = do
+  t <- getExpType e res
+  case (op, t) of
+  -- Arithmetic
+    (Negative, Just IntType) -> return $ Just IntType
+    -- Canvas
+    (Rotate, Just CanvasType) -> return $ Just CanvasType
+    (Transpose, Just CanvasType) -> return $ Just CanvasType
+    -- Boolean
+    (Negate, Just BoolType) -> return $ Just BoolType
+    _ -> return Nothing

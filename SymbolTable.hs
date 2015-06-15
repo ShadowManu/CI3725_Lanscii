@@ -35,7 +35,7 @@ type TreeTrail a = [Tree a]
 
 -- Type for symbol information
 -- TODO to be fully implemented
-data Symbol = Symbol String DataType
+data Symbol = Symbol {getIden :: String, getType :: DataType}
   deriving (Eq, Show)
 
 -- Concrete type for the Hash Table for a local Symbol Table
