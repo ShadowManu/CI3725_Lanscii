@@ -5,6 +5,8 @@ module SymbolTable
 , insert
 , lookup
 , lookupComplete
+, openScope
+, closeScope
 ) where
 
 {- OPTIONS_GHC -XFlexibleInstances -XTypeSynonymInstances -}
@@ -69,12 +71,31 @@ lookup st@(SymbolTable (Tree tab childs, trail)) = H.lookup tab
 
 -- Get a symbol in the Symbol Tables in scope (if it exists) using a key
 lookupComplete :: SymbolTable -> String -> IO (Maybe Symbol)
+lookupComplete st@(SymbolTable (local, [])) str = do
+  -- Local lookup
+  sym <- lookup st str
+  return
+    (if isJust sym
+      -- If found, send it
+      then sym
+      -- If not, we looked everywhere already
+      else Nothing)
 lookupComplete st@(SymbolTable (local, Tree parent siblings : rest)) str = do
   -- Local lookup
   sym <- lookup st str
   -- If found
   if isJust sym then return sym
+  -- If not, we can keep looking
   else lookupComplete (SymbolTable (Tree parent (local:siblings), rest)) str
+
+openScope :: SymbolTable -> IO SymbolTable
+openScope (SymbolTable (local, rest)) = do
+  newTable <- H.new
+  return $ SymbolTable (Tree newTable [], local:rest)
+
+closeScope :: SymbolTable -> IO SymbolTable
+closeScope (SymbolTable (local, Tree parent siblings : rest)) =
+  return $ SymbolTable (Tree parent (local:siblings), rest)
 
 -----------------------------------
 ---- Display instances por printing
@@ -109,6 +130,6 @@ instance (SDisplay a) => SDisplay (Tree a) where
 instance SDisplay (B.HashTable P.RealWorld String Symbol) where
   sDisplay hash = do
     kvList <- H.toList hash
-    let strKv (k,v) = k ++ " -- " ++ show v -- TODO Replace
+    let strKv (_,(Symbol name t)) = "Symbol " ++ show name ++ " with type " ++ show t ++ "."
     let printKv = map strKv
-    return . printKv $ kvList
+    return $ "SYMBOLS: " : (printKv kvList)

@@ -1,5 +1,8 @@
 module SymbolChecking
-where
+( Process(..)
+, Result(..)
+, newResult
+) where
 
 import Prelude hiding (lookup)
 import Data.Maybe
@@ -11,6 +14,12 @@ import Display
 
 -- Type for keeping results of Symbol Table processing
 newtype Result = Result (ST.SymbolTable, [String])
+
+-- Result Constructor
+newResult :: IO (Result)
+newResult = do
+  initTable <- ST.new
+  return $ Result (initTable, [])
 
 -- Typeclass for common processing of symbols
 class Process a where
@@ -35,9 +44,11 @@ instance Process Begin where
 -- Process statements
 instance Process Statement where
   -- TODO a Block statement is new scope: should use a new table
-  process (BlockStmt decList stmtList) res = do
-    newRes <- process decList res
-    process stmtList newRes
+  process (BlockStmt decList stmtList) res@(Result (st, out)) = do
+    newSt <- ST.openScope st
+    Result (nextSt, nextOut) <- process decList (Result (newSt, out)) >>= process stmtList
+    lastSt <- ST.closeScope nextSt
+    return $ Result (lastSt, nextOut)
   process (Assignment (Identifier iden) expr) res@(Result (st, out)) = do
     -- Check if the identifier is in scope (possibly not local)
     sym <- ST.lookupComplete st iden
