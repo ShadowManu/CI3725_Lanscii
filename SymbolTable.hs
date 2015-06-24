@@ -41,7 +41,7 @@ data Symbol = Symbol {
   getIden :: String,
   getType :: DataType,
   getValue :: Expression,
-  isInit :: Bool}
+  isInit :: Bool }
   deriving (Eq, Show)
 
 -- Concrete type for the Hash Table for a local Symbol Table
