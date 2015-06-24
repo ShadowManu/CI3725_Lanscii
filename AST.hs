@@ -49,7 +49,7 @@ data Expression
   | IntExp Int AlexPosn
   | VarExp Identifier AlexPosn
   | BoolExp Bool AlexPosn
-  | CanvasExp String AlexPosn
+  | CanvasExp [String] AlexPosn
   deriving (Show, Eq)
 
 data BinaryOp
@@ -160,7 +160,7 @@ instance PDisplay Expression where
   pDisplay (IntExp num _) = ["NUMBER: " ++ show num]
   pDisplay (VarExp iden _) = pDisplay iden
   pDisplay (BoolExp bool _) = ["BOOLEAN: " ++ show bool]
-  pDisplay (CanvasExp str _) = ["CANVAS: " ++ str]
+  pDisplay (CanvasExp strs _) = "CANVAS: " : strs
 
 instance PDisplay BinaryOp where
   pDisplay Plus = ["OPERATOR: +"]

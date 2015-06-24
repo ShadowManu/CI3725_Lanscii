@@ -139,13 +139,13 @@ EXPRESSION : int { IntExp (read (tokVal $1) :: Int) (position $1) }
   | IDENTIFIER { VarExp $1 (position $1) }
   | true  { BoolExp True (position $1) }
   | false { BoolExp False (position $1) }
-  | '#' { CanvasExp "" (position $1) }
-  | '<\>' { CanvasExp "\\" (position $1) }
-  | '<|>' { CanvasExp "|" (position $1) }
-  | '</>' { CanvasExp "/" (position $1) }
-  | '<->' { CanvasExp "-" (position $1) }
-  | '<_>' { CanvasExp "_" (position $1) }
-  | '< >' { CanvasExp " " (position $1) }
+  | '#' { CanvasExp [""] (position $1) }
+  | '<\>' { CanvasExp ["\\"] (position $1) }
+  | '<|>' { CanvasExp ["|"] (position $1) }
+  | '</>' { CanvasExp ["/"] (position $1) }
+  | '<->' { CanvasExp ["-"] (position $1) }
+  | '<_>' { CanvasExp ["_"] (position $1) }
+  | '< >' { CanvasExp [" "] (position $1) }
   | '(' EXPRESSION ')' { $2 }
 
   -- Arithmetic Operators
