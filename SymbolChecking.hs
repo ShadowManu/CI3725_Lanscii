@@ -9,6 +9,7 @@ import Data.Maybe
 import Data.Either
 
 import qualified SymbolTable as ST
+import Alex
 import AST
 import Display
 
@@ -49,19 +50,19 @@ instance Process Statement where
     Result (nextSt, nextOut) <- process decList (Result (newSt, out)) >>= process stmtList
     lastSt <- ST.closeScope nextSt
     return $ Result (lastSt, nextOut)
-  process (Assignment (Identifier iden) expr) res@(Result (st, out)) = do
+  process (Assignment (Identifier iden apos) expr _) res@(Result (st, out)) = do
     -- Check if the identifier is in scope (possibly not local)
     sym <- ST.lookupComplete st iden
     if isJust sym
     -- If it is, just check the expression
     then process expr res
-    -- iF its not, add an error and check the expression
+    -- if its not, add an error and check the expression
     else
       let extra = "Variable " ++ show iden ++ " used in the left side of an \
       \assignment is not declared in the scope."
       in process expr (Result (st, extra:out))
   -- #! TODO COMPLETE OTHER PATTERNS
-  process (Read (Identifier iden)) res@(Result (st, out)) = do
+  process (Read (Identifier iden _) _) res@(Result (st, out)) = do
     -- Check if the identifier is in scope (possibly not local)
     sym <- ST.lookupComplete st iden
     if isNothing sym
@@ -72,30 +73,25 @@ instance Process Statement where
       let extra = "Variable " ++ show iden ++ " used in a Read statement is not \
       \declared in the scope"
       in return $ Result (st, extra:out)
-  process (Write (Identifier iden)) res@(Result (st, out)) = do
-    -- Check if the identifier is in scope (possibly not local)
-    sym <- ST.lookupComplete st iden
-    if isNothing sym
-    -- If it is, keep processing
-    then return res
-    -- iF its not, add an error and check the expression
-    else
-      let extra = "Variable " ++ show iden ++ " used in a Write statement is not \
-      \declared in the scope"
-      in return $ Result (st, extra:out)
-  process (If expr thenList elseList) res =
+  process (Write expr _) res@(Result (st, out)) = do
+    -- The expression type has to be Canvas
+    expType <- getExpType expr res
+    case expType of
+      Right BoolType -> process expr res
+      _ -> let extra = "Expression of Write is not of type Canvas"
+        in process expr (Result (st, extra:out))
+  process (If expr thenList elseList _) res =
     -- Just check the 3 components
     process expr res >>= process thenList >>= process elseList
-
-  process (ForIn expr stList) res =
+  process (ForIn expr stList _) res =
     -- Just check the 2 components
     process expr res >>= process stList
-  process (ForDet Nothing range stList) res = do
+  process (ForDet Nothing range stList _) res = do
     -- Check the range
     newRes <- process range res
     -- Check the statement list
     process stList newRes
-  process (ForDet (Just ider@(Identifier iden)) range stList) res@(Result (st, out)) = do
+  process (ForDet (Just ider@(Identifier iden _)) range stList apos) res@(Result (st, out)) = do
     -- Check the range first (it must not use the enumerator variable)
     newRes <- process range res
     -- Check the identifier in the local scope TODO verify scope rules
@@ -109,11 +105,11 @@ instance Process Statement where
     -- If its not, add it to the scope
     else process (IntType, ider) newRes
     -- Keep checking with the other pattern
-    process (ForDet Nothing range stList) nextRes
+    process (ForDet Nothing range stList apos) nextRes
 
 -- Process variable declarations
 instance Process (DataType, Identifier) where
-  process (dt, Identifier iden) (Result (st, out)) = do
+  process (dt, Identifier iden pos) (Result (st, out)) = do
     -- Check if variable is declared locally already (should not)
     sym <- ST.lookup st iden
     if isJust sym
@@ -124,7 +120,7 @@ instance Process (DataType, Identifier) where
       in return $ Result (st, extra:out)
     -- If its not, add it to the table (hiding the upper one)
     else do
-      newSt <- ST.insert st iden (ST.Symbol iden dt (defVal BoolType)  False)
+      newSt <- ST.insert st iden (ST.Symbol iden dt (defVal BoolType pos)  False)
       return $ Result (newSt, out)
 
 -- Omitting processing DataTypes (not required)
@@ -132,7 +128,7 @@ instance Process (DataType, Identifier) where
 
 -- Process range expressions
 instance Process Range where
-  process (Range e1 e2) res =
+  process (Range e1 e2 _) res =
     -- Check both expressions
     process e1 res >>= process e2
 
@@ -156,11 +152,11 @@ instance Process Expression where
         let extra = "Variable " ++ var ++ " not declared in expression: " ++ show expr
         in return $ Result (st, extra:out)
       -- Reporting Incompatible binary expressions
-      Left (Incompatible, expr@(BinaryExp op e1 e2)) ->
+      Left (Incompatible, expr@(BinaryExp op e1 e2 _)) ->
         let extra = "Incompatible use of operator " ++ show op ++ " between expressions " ++ show e1 ++ " and " ++ show e2
         in return $ Result (st, extra:out)
       -- Reporting Incompatible binary expressions
-      Left (Incompatible, expr@(UnaryExp op e)) ->
+      Left (Incompatible, expr@(UnaryExp op e _)) ->
         let extra = "Incompatible use of operator " ++ show op ++ " with the expression " ++ show e
         in return $ Result (st, extra:out)
 
@@ -171,12 +167,12 @@ type ExpTypeResult = IO (Either (ExprError, Expression) DataType)
 
 -- Main Type checker function
 getExpType :: Expression -> Result -> ExpTypeResult
-getExpType (BinaryExp op e1 e2) res = compatibleBinExp op e1 e2 res
-getExpType (UnaryExp op e) res = compatibleUnExp op e res
-getExpType (IntExp _) _ = return $ Right IntType
-getExpType (BoolExp _) _ = return $ Right BoolType
-getExpType (CanvasExp _) _ = return $ Right CanvasType
-getExpType var@(VarExp (Identifier iden)) res@(Result (st, out)) = do
+getExpType (BinaryExp op e1 e2 _) res = compatibleBinExp op e1 e2 res
+getExpType (UnaryExp op e _) res = compatibleUnExp op e res
+getExpType (IntExp _ _) _ = return $ Right IntType
+getExpType (BoolExp _ _) _ = return $ Right BoolType
+getExpType (CanvasExp _ _) _ = return $ Right CanvasType
+getExpType var@(VarExp (Identifier iden _) _) res@(Result (st, out)) = do
   sym <- ST.lookup st iden
   return
     -- If the symbol is defined
@@ -188,6 +184,26 @@ getExpType var@(VarExp (Identifier iden)) res@(Result (st, out)) = do
 
 -- Type Checker helper for binary epressions
 compatibleBinExp :: BinaryOp -> Expression -> Expression -> Result -> ExpTypeResult
+compatibleBinExp op e1@(VarExp (Identifier iden api) _) e2 res@(Result (st, out))= do
+  sym <- ST.lookupComplete st iden
+  -- If the symbol exists
+  if isJust sym
+  then
+    -- Evaluate expression with type found substituted
+    compatibleBinExp op (defVal (ST.getType $ fromJust sym) api) e2 res
+  else
+    -- Report undeclared value
+    return $ Left (Undeclared iden, e1)
+compatibleBinExp op e1 e2@(VarExp (Identifier iden api) _) res@(Result (st, out))= do
+  sym <- ST.lookupComplete st iden
+  -- If the symbol exists
+  if isJust sym
+  then
+    -- Evaluate expression with type found substituted
+    compatibleBinExp op e1 (defVal (ST.getType $ fromJust sym) api) res
+  else
+    -- Report undeclared value
+    return $ Left (Undeclared iden, e2)
 compatibleBinExp op e1 e2 res = do
   t1 <- getExpType e1 res
   t2 <- getExpType e2 res
@@ -211,15 +227,26 @@ compatibleBinExp op e1 e2 res = do
     -- Canvas
     (Right CanvasType, ConcatH, Right CanvasType) -> return $ Right CanvasType
     (Right CanvasType, ConcatV, Right CanvasType) -> return $ Right CanvasType
-    -- Wrong type expressions
+    -- Wrong type propagation (undeclared over incompatible -being the latest, the default-)
     (val@(Left (Undeclared _, _)), _, _) -> return val
     (_, _, val@(Left (Undeclared _, _))) -> return val
     (val@(Left (Incompatible, _)), _, _) -> return val
     (_, _, val@(Left (Incompatible, _))) -> return val
-    _ -> return $ Left (Incompatible, BinaryExp op e1 e2)
+    -- Wrong type operation
+    _ -> return $ Left (Incompatible, BinaryExp op e1 e2 (position e1))
 
 -- Type Checker for unary expressions
 compatibleUnExp :: UnaryOp -> Expression -> Result -> ExpTypeResult
+compatibleUnExp op e@(VarExp (Identifier iden api) _) res@(Result (st, out)) = do
+  sym <- ST.lookupComplete st iden
+  -- If the symbol exists
+  if isJust sym
+  then
+    -- Evaluate expression with type found substituted
+    compatibleUnExp op (defVal (ST.getType $ fromJust sym) api) res
+  else
+    -- Report undeclared value
+    return $ Left (Undeclared iden, e)
 compatibleUnExp op e res = do
   t <- getExpType e res
   case (op, t) of
@@ -230,13 +257,14 @@ compatibleUnExp op e res = do
     (Transpose, Right CanvasType) -> return $ Right CanvasType
     -- Boolean
     (Negate, Right BoolType) -> return $ Right BoolType
-    -- Wrong Type Expressions
+    -- Wrong type propagation
     (_, val@(Left (Undeclared _, _))) -> return val
     (_, val@(Left (Incompatible, _))) -> return val
-    _ -> return $ Left (Incompatible, UnaryExp op e)
+    -- Wrint type expression
+    _ -> return $ Left (Incompatible, UnaryExp op e (position e))
 
 -- Default Values for Expressions types
-defVal :: DataType -> Expression
+defVal :: DataType -> AlexPosn -> Expression
 defVal BoolType = BoolExp False
 defVal IntType = IntExp 0
 defVal CanvasType = CanvasExp []
