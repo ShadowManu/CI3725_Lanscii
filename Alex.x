@@ -11,6 +11,8 @@ module Alex
 , AlexPosn(..)
 , noParseToken
 , tokenize
+, posLine
+, posColumn
 ) where
 
 import Display
@@ -185,5 +187,11 @@ tokensFilter = choice . foldr send ([],[],[])
 
 tokenize :: String -> [Token]
 tokenize = tokensFilter . alexScanTokens
+
+posLine :: AlexPosn -> Int
+posLine (AlexPn _ l _) = l
+
+posColumn :: AlexPosn -> Int
+posColumn (AlexPn _ _ c) = c
 
 }
