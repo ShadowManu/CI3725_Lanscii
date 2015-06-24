@@ -110,15 +110,15 @@ BEGIN : STATEMENT { Begin $1 }
 STATEMENT : '{' DECLARE_LIST '|' STATEMENT_LIST '}'  { BlockStmt (Just $2) $4 }
   | '{' STATEMENT_LIST '}'  { BlockStmt Nothing $2 }
   | IDENTIFIER '=' EXPRESSION { Assignment $1 $3 (position $1) }
-  | read IDENTIFIER { Read $2 (position $2) }
-  | write IDENTIFIER { Write $2 (position $2) }
+  | read IDENTIFIER { Read $2 (position $1) }
+  | write EXPRESSION { Write $2 (position $1) }
 
   | '(' EXPRESSION '?' STATEMENT_LIST ')' { If $2 $4 Nothing (position $2) }
-  | '(' EXPRESSION '?' STATEMENT_LIST ':' STATEMENT_LIST ')' { If $2 $4 (Just $6) (position $2) }
+  | '(' EXPRESSION '?' STATEMENT_LIST ':' STATEMENT_LIST ')' { If $2 $4 (Just $6) (position $1) }
 
-  | '[' EXPRESSION '|' STATEMENT_LIST '}' { ForIn $2 $4 (position $2) }
-  | '[' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet Nothing (Range $2 $4 (position $2)) $6 (position $2) }
-  | '[' IDENTIFIER ':' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet (Just $2) (Range $4 $6 (position $4)) $8 (position $2) }
+  | '[' EXPRESSION '|' STATEMENT_LIST '}' { ForIn $2 $4 (position $1) }
+  | '[' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet Nothing (Range $2 $4 (position $2)) $6 (position $1) }
+  | '[' IDENTIFIER ':' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet (Just $2) (Range $4 $6 (position $4)) $8 (position $1) }
 
 STATEMENT_LIST : STATEMENT { [$1] }
   | STATEMENT_LIST ';' STATEMENT  { $1 ++ [$3] }

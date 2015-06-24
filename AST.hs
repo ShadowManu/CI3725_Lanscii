@@ -21,7 +21,7 @@ data Statement
   = BlockStmt (Maybe DeclareList) StatementList
   | Assignment Identifier Expression AlexPosn
   | Read Identifier AlexPosn
-  | Write Identifier AlexPosn
+  | Write Expression AlexPosn
   | If Expression StatementList (Maybe StatementList) AlexPosn
   | ForIn Expression StatementList AlexPosn
   | ForDet (Maybe Identifier) Range StatementList AlexPosn
