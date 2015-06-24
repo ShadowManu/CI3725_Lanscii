@@ -18,68 +18,68 @@ import Display
 %token
 
   -- Basics
-  '{' { Token LCURLY ap $$ }
-  '}' { Token RCURLY ap $$ }
-  '|' { Token PIPE ap $$ }
+  '{' { Token LCURLY ap val }
+  '}' { Token RCURLY ap val }
+  '|' { Token PIPE ap val }
 
   -- Constants
-  true  { Token TRUE ap $$ }
-  false { Token FALSE ap $$ }
-  int  { Token NUMBER ap $$ }
-  '#'    { Token CANVAS ap $$ }
-  '<\>'  { Token CANVAS ap $$ }
-  '<|>'  { Token CANVAS ap $$ }
-  '</>'  { Token CANVAS ap $$ }
-  '<->'  { Token CANVAS ap $$ }
-  '<_>'  { Token CANVAS ap $$ }
-  '< >'  { Token CANVAS ap $$ }
+  true  { Token TRUE ap val }
+  false { Token FALSE ap val }
+  int  { Token NUMBER ap val }
+  '#'    { Token CANVAS ap val }
+  '<\>'  { Token CANVAS ap val }
+  '<|>'  { Token CANVAS ap val }
+  '</>'  { Token CANVAS ap val }
+  '<->'  { Token CANVAS ap val }
+  '<_>'  { Token CANVAS ap val }
+  '< >'  { Token CANVAS ap val }
 
   -- Reserved Words
-  read  { Token READ ap $$ }
-  write { Token WRITE ap $$ }
+  read  { Token READ ap val }
+  write { Token WRITE ap val }
 
   -- Type Symbols
-  '\%' { Token PERCENT ap $$ }
-  '!' { Token EXCLAMATIONMARK ap $$ }
-  '@' { Token AT ap $$ }
+  '\%' { Token PERCENT ap val }
+  '!' { Token EXCLAMATIONMARK ap val }
+  '@' { Token AT ap val }
 
   -- Common Operators
-  '='   { Token EQUALS ap $$ }
-  ':'   { Token COLON ap $$ }
-  ';'   { Token SEMICOLON ap $$ }
-  '?'   { Token QUESTIONMARK ap $$ }
-  '('   { Token LPARENTHESIS ap $$ }
-  ')'   { Token RPARENTHESIS ap $$ }
-  '['   { Token LBRACKET ap $$ }
-  ']'   { Token RBRACKET ap $$ }
-  '..'  { Token RANGE ap $$ }
+  '='   { Token EQUALS ap val }
+  ':'   { Token COLON ap val }
+  ';'   { Token SEMICOLON ap val }
+  '?'   { Token QUESTIONMARK ap val }
+  '('   { Token LPARENTHESIS ap val }
+  ')'   { Token RPARENTHESIS ap val }
+  '['   { Token LBRACKET ap val }
+  ']'   { Token RBRACKET ap val }
+  '..'  { Token RANGE ap val }
 
   -- Boolean Operators
-  '\\/'  { Token LOG_OR ap $$ }
-  '/\\'  { Token LOG_AND ap $$ }
-  '^'   { Token LOG_NEG ap $$ }
+  '\\/'  { Token LOG_OR ap val }
+  '/\\'  { Token LOG_AND ap val }
+  '^'   { Token LOG_NEG ap val }
 
   -- Relational Operators
-  '<='  { Token REL_LE ap $$ }
-  '>='  { Token REL_GE ap $$ }
-  '/='  { Token REL_NE ap $$ }
-  '<'   { Token REL_LT ap $$ }
-  '>'   { Token REL_GT ap $$ }
+  '<='  { Token REL_LE ap val }
+  '>='  { Token REL_GE ap val }
+  '/='  { Token REL_NE ap val }
+  '<'   { Token REL_LT ap val }
+  '>'   { Token REL_GT ap val }
 
   -- Arithmetic Operators
-  '+' { Token PLUS ap $$ }
-  '-' { Token MINUS ap $$ }
-  '*' { Token ASTERISK ap $$ }
-  '/' { Token SLASH ap $$ }
+  '+' { Token PLUS ap val }
+  '-' { Token MINUS ap val }
+  '*' { Token ASTERISK ap val }
+  '/' { Token SLASH ap val }
 
   -- Canvas Operators
-  '~' { Token LINKING ap $$ }
-  '&' { Token AMPERSAND ap $$ }
-  '$' { Token DOLLAR ap $$ }
-  '\'' { Token APOSTROPHE ap $$ }
+  '~' { Token LINKING ap val }
+  '&' { Token AMPERSAND ap val }
+  '$' { Token DOLLAR ap val }
+  '\'' { Token APOSTROPHE ap val }
 
   -- Normal Symbols
-  identifier { Token IDENTIFIER ap $$ }
+  identifier { Token IDENTIFIER ap val }
 
 ---- Operator Precedence ----
 
@@ -109,16 +109,16 @@ BEGIN : STATEMENT { Begin $1 }
 
 STATEMENT : '{' DECLARE_LIST '|' STATEMENT_LIST '}'  { BlockStmt (Just $2) $4 }
   | '{' STATEMENT_LIST '}'  { BlockStmt Nothing $2 }
-  | IDENTIFIER '=' EXPRESSION { Assignment $1 $3 }
-  | read IDENTIFIER { Read $2 }
-  | write IDENTIFIER { Write $2 }
+  | IDENTIFIER '=' EXPRESSION { Assignment $1 $3 (position $1) }
+  | read IDENTIFIER { Read $2 (position $2) }
+  | write IDENTIFIER { Write $2 (position $2) }
 
-  | '(' EXPRESSION '?' STATEMENT_LIST ')' { If $2 $4 Nothing }
-  | '(' EXPRESSION '?' STATEMENT_LIST ':' STATEMENT_LIST ')' { If $2 $4 (Just $6) }
+  | '(' EXPRESSION '?' STATEMENT_LIST ')' { If $2 $4 Nothing (position $2) }
+  | '(' EXPRESSION '?' STATEMENT_LIST ':' STATEMENT_LIST ')' { If $2 $4 (Just $6) (position $2) }
 
-  | '[' EXPRESSION '|' STATEMENT_LIST '}' { ForIn $2 $4 }
-  | '[' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet Nothing (Range $2 $4) $6 }
-  | '[' IDENTIFIER ':' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet (Just $2) (Range $4 $6) $8 }
+  | '[' EXPRESSION '|' STATEMENT_LIST '}' { ForIn $2 $4 (position $2) }
+  | '[' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet Nothing (Range $2 $4 (position $2)) $6 (position $2) }
+  | '[' IDENTIFIER ':' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet (Just $2) (Range $4 $6 (position $4)) $8 (position $2) }
 
 STATEMENT_LIST : STATEMENT { [$1] }
   | STATEMENT_LIST ';' STATEMENT  { $1 ++ [$3] }
@@ -133,53 +133,53 @@ DATA_TYPE : '\%'  { IntType }
 DECLARE_ID : IDENTIFIER { [$1] }
   | DECLARE_ID IDENTIFIER { $1 ++ [$2] }
 
-IDENTIFIER : identifier { Identifier $1 }
+IDENTIFIER : identifier { Identifier (tokVal $1) (position $1) }
 
-EXPRESSION : int  { IntExp (read $1 :: Int) }
-  | IDENTIFIER { VarExp $1 }
-  | true  { BoolExp True }
-  | false { BoolExp False }
-  | '#' { CanvasExp "" }
-  | '<\>' { CanvasExp "\\" }
-  | '<|>' { CanvasExp "|" }
-  | '</>' { CanvasExp "/" }
-  | '<->' { CanvasExp "-" }
-  | '<_>' { CanvasExp "_" }
-  | '< >' { CanvasExp " " }
+EXPRESSION : int { IntExp (read (tokVal $1) :: Int) (position $1) }
+  | IDENTIFIER { VarExp $1 (position $1) }
+  | true  { BoolExp True (position $1) }
+  | false { BoolExp False (position $1) }
+  | '#' { CanvasExp "" (position $1) }
+  | '<\>' { CanvasExp "\\" (position $1) }
+  | '<|>' { CanvasExp "|" (position $1) }
+  | '</>' { CanvasExp "/" (position $1) }
+  | '<->' { CanvasExp "-" (position $1) }
+  | '<_>' { CanvasExp "_" (position $1) }
+  | '< >' { CanvasExp " " (position $1) }
   | '(' EXPRESSION ')' { $2 }
 
   -- Arithmetic Operators
-  | EXPRESSION '+' EXPRESSION { BinaryExp Plus $1 $3 }
-  | EXPRESSION '-' EXPRESSION { BinaryExp Minus $1 $3 }
-  | EXPRESSION '*' EXPRESSION { BinaryExp Times $1 $3 }
-  | EXPRESSION '/' EXPRESSION { BinaryExp Div $1 $3 }
-  | EXPRESSION '\%' EXPRESSION { BinaryExp Mod $1 $3 }
+  | EXPRESSION '+' EXPRESSION { BinaryExp Plus $1 $3 (position $1) }
+  | EXPRESSION '-' EXPRESSION { BinaryExp Minus $1 $3 (position $1) }
+  | EXPRESSION '*' EXPRESSION { BinaryExp Times $1 $3 (position $1) }
+  | EXPRESSION '/' EXPRESSION { BinaryExp Div $1 $3 (position $1) }
+  | EXPRESSION '\%' EXPRESSION { BinaryExp Mod $1 $3 (position $1) }
 
   -- Unary Arithmetic Operator
-  | '-' EXPRESSION  { UnaryExp Negative $2 }
+  | '-' EXPRESSION  { UnaryExp Negative $2 (position $1) }
 
   -- Canvas Operators
-  | EXPRESSION '~' EXPRESSION { BinaryExp ConcatH $1 $3 }
-  | EXPRESSION '&' EXPRESSION { BinaryExp ConcatV $1 $3 }
+  | EXPRESSION '~' EXPRESSION { BinaryExp ConcatH $1 $3 (position $1) }
+  | EXPRESSION '&' EXPRESSION { BinaryExp ConcatV $1 $3 (position $1) }
 
   -- Unary Canvas Operator
-  | '$' EXPRESSION { UnaryExp Rotate $2}
-  | EXPRESSION '\'' { UnaryExp Transpose $1 }
+  | '$' EXPRESSION { UnaryExp Rotate $2 (position $1) }
+  | EXPRESSION '\'' { UnaryExp Transpose $1 (position $1) }
 
   -- Relational Operators
-  | EXPRESSION '<=' EXPRESSION { BinaryExp LessEq $1 $3 }
-  | EXPRESSION '>=' EXPRESSION { BinaryExp GreatEq $1 $3 }
-  | EXPRESSION '/=' EXPRESSION { BinaryExp NotEqual $1 $3 }
-  | EXPRESSION '<' EXPRESSION { BinaryExp LessT $1 $3 }
-  | EXPRESSION '>' EXPRESSION { BinaryExp GreatT $1 $3 }
-  | EXPRESSION '=' EXPRESSION { BinaryExp Equal $1 $3 }
+  | EXPRESSION '<=' EXPRESSION { BinaryExp LessEq $1 $3 (position $1) }
+  | EXPRESSION '>=' EXPRESSION { BinaryExp GreatEq $1 $3 (position $1) }
+  | EXPRESSION '/=' EXPRESSION { BinaryExp NotEqual $1 $3 (position $1) }
+  | EXPRESSION '<' EXPRESSION { BinaryExp LessT $1 $3 (position $1) }
+  | EXPRESSION '>' EXPRESSION { BinaryExp GreatT $1 $3 (position $1) }
+  | EXPRESSION '=' EXPRESSION { BinaryExp Equal $1 $3 (position $1) }
 
   -- Boolean Operators
-  | EXPRESSION '\\/' EXPRESSION { BinaryExp Or $1 $3 }
-  | EXPRESSION '/\\' EXPRESSION { BinaryExp And $1 $3 }
+  | EXPRESSION '\\/' EXPRESSION { BinaryExp Or $1 $3 (position $1) }
+  | EXPRESSION '/\\' EXPRESSION { BinaryExp And $1 $3 (position $1) }
 
   -- Unary Boolean Operator
-  | EXPRESSION '^' { UnaryExp Negate $1 }
+  | EXPRESSION '^' { UnaryExp Negate $1 (position $1) }
 
 {
 

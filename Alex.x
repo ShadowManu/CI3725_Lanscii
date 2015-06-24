@@ -8,6 +8,7 @@
 module Alex
 ( Token(..)
 , TkType(..)
+, AlexPosn(..)
 , noParseToken
 , tokenize
 ) where
@@ -114,7 +115,10 @@ tokens :-
 
 -- Define the general token structure:
 -- the type of the token, its value, and position information
-data Token = Token TkType AlexPosn String
+data Token = Token {
+  tokType :: TkType,
+  tokPos :: AlexPosn,
+  tokVal :: String }
   deriving (Show, Eq)
 
 -- Defines the different types of available tokens
