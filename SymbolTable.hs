@@ -37,7 +37,11 @@ type TreeTrail a = [Tree a]
 
 -- Type for symbol information
 -- TODO to be fully implemented
-data Symbol = Symbol {getIden :: String, getType :: DataType}
+data Symbol = Symbol {
+  getIden :: String,
+  getType :: DataType,
+  getValue :: Expression,
+  isInit :: Bool}
   deriving (Eq, Show)
 
 -- Concrete type for the Hash Table for a local Symbol Table
@@ -130,6 +134,6 @@ instance (SDisplay a) => SDisplay (Tree a) where
 instance SDisplay (B.HashTable P.RealWorld String Symbol) where
   sDisplay hash = do
     kvList <- H.toList hash
-    let strKv (_,(Symbol name t)) = "Symbol " ++ show name ++ " with type " ++ show t ++ "."
+    let strKv (_, Symbol name t val ini) = "Symbol " ++ show name ++ " with type " ++ show t ++ "."
     let printKv = map strKv
-    return $ "SYMBOLS: " : (printKv kvList)
+    return $ "SYMBOLS: " : printKv kvList

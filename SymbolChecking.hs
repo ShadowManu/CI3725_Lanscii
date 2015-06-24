@@ -124,7 +124,7 @@ instance Process (DataType, Identifier) where
       in return $ Result (st, extra:out)
     -- If its not, add it to the table (hiding the upper one)
     else do
-      newSt <- ST.insert st iden (ST.Symbol iden dt)
+      newSt <- ST.insert st iden (ST.Symbol iden dt (defVal BoolType)  False)
       return $ Result (newSt, out)
 
 -- Omitting processing DataTypes (not required)
@@ -173,7 +173,7 @@ type ExpTypeResult = IO (Either (ExprError, Expression) DataType)
 getExpType :: Expression -> Result -> ExpTypeResult
 getExpType (BinaryExp op e1 e2) res = compatibleBinExp op e1 e2 res
 getExpType (UnaryExp op e) res = compatibleUnExp op e res
-getExpType (NumExp _) _ = return $ Right IntType
+getExpType (IntExp _) _ = return $ Right IntType
 getExpType (BoolExp _) _ = return $ Right BoolType
 getExpType (CanvasExp _) _ = return $ Right CanvasType
 getExpType var@(VarExp (Identifier iden)) res@(Result (st, out)) = do
@@ -234,3 +234,11 @@ compatibleUnExp op e res = do
     (_, val@(Left (Undeclared _, _))) -> return val
     (_, val@(Left (Incompatible, _))) -> return val
     _ -> return $ Left (Incompatible, UnaryExp op e)
+
+-- Default Values for Expressions types
+defVal :: DataType -> Expression
+defVal BoolType = BoolExp False
+defVal IntType = IntExp 0
+defVal CanvasType = CanvasExp []
+
+-- Expression Evaluation with dynamic checks

@@ -33,7 +33,6 @@ data DataType
   = BoolType
   | IntType
   | CanvasType
-  | TypeError [String]
   deriving (Show, Eq)
 
 data Identifier = Identifier String
@@ -45,7 +44,7 @@ data Range = Range Expression Expression
 data Expression
   = BinaryExp BinaryOp Expression Expression
   | UnaryExp UnaryOp Expression
-  | NumExp Int
+  | IntExp Int
   | VarExp Identifier
   | BoolExp Bool
   | CanvasExp String
@@ -127,7 +126,7 @@ instance PDisplay Range where
 instance PDisplay Expression where
   pDisplay (BinaryExp op e1 e2) = concat [["BINARY EXPRESSION"], indented op, indented e1, indented e2]
   pDisplay (UnaryExp op e) = concat [["UNARY EXPRESSION"], indented op, indented e]
-  pDisplay (NumExp num) = ["NUMBER: " ++ show num]
+  pDisplay (IntExp num) = ["NUMBER: " ++ show num]
   pDisplay (VarExp iden) = pDisplay iden
   pDisplay (BoolExp bool) = ["BOOLEAN: " ++ show bool]
   pDisplay (CanvasExp str) = ["CANVAS: " ++ str]
