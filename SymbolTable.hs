@@ -5,6 +5,7 @@ module SymbolTable
 , insert
 , lookup
 , lookupComplete
+, newScope
 , openScope
 , closeScope
 ) where
@@ -76,27 +77,49 @@ lookup st@(SymbolTable (Tree tab childs, trail)) = H.lookup tab
 -- Get a symbol in the Symbol Tables in scope (if it exists) using a key
 lookupComplete :: SymbolTable -> String -> IO (Maybe Symbol)
 lookupComplete st@(SymbolTable (local, [])) str = do
-  -- Local lookup
   sym <- lookup st str
-  return
-    (if isJust sym
-      -- If found, send it
-      then sym
-      -- If not, we looked everywhere already
-      else Nothing)
-lookupComplete st@(SymbolTable (local, Tree parent siblings : rest)) str = do
-  -- Local lookup
-  sym <- lookup st str
-  -- If found
-  if isJust sym then return sym
-  -- If not, we can keep looking
-  else lookupComplete (SymbolTable (Tree parent (local:siblings), rest)) str
+  return (if isJust sym then sym else Nothing)
 
-openScope :: SymbolTable -> IO SymbolTable
-openScope (SymbolTable (local, rest)) = do
+lookupComplete st@(SymbolTable (local, Tree parent siblings : rest)) str = do
+  sym <- lookup st str
+  if isJust sym
+  then
+    return sym
+  else
+    lookupComplete (SymbolTable (Tree parent (local:siblings), rest)) str
+
+-- Updates the closest symbol
+update :: SymbolTable -> String -> Symbol -> IO SymbolTable
+update st@(SymbolTable (Tree tab childs, [])) str sym = do
+  symfound <- H.lookup tab str
+  if isJust symfound
+  then do
+    H.insert tab str sym
+    return st
+  else
+    return st
+
+update st@(SymbolTable (Tree tab childs, trail)) str sym = do
+  symfound <- H.lookup tab str
+  if isJust symfound
+  then do
+    H.insert tab str sym
+    return st
+  else
+    closeScope st >>= (\st -> update st str sym) >>= openScope
+
+-- Opens a new child table
+newScope :: SymbolTable -> IO SymbolTable
+newScope (SymbolTable (local, rest)) = do
   newTable <- H.new
   return $ SymbolTable (Tree newTable [], local:rest)
 
+-- Opens the last child table (already created)
+openScope :: SymbolTable -> IO SymbolTable
+openScope (SymbolTable (Tree parent (local:siblings), rest)) =
+  return $ SymbolTable (local, Tree parent siblings : rest)
+
+-- Returns to parent table
 closeScope :: SymbolTable -> IO SymbolTable
 closeScope (SymbolTable (local, Tree parent siblings : rest)) =
   return $ SymbolTable (Tree parent (local:siblings), rest)

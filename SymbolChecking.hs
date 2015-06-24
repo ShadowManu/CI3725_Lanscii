@@ -44,24 +44,21 @@ instance Process Begin where
 
 -- Process statements
 instance Process Statement where
-  -- TODO a Block statement is new scope: should use a new table
   process (BlockStmt decList stmtList) res@(Result (st, out)) = do
-    newSt <- ST.openScope st
+    newSt <- ST.newScope st
     Result (nextSt, nextOut) <- process decList (Result (newSt, out)) >>= process stmtList
     lastSt <- ST.closeScope nextSt
     return $ Result (lastSt, nextOut)
-  process (Assignment (Identifier iden apos) expr _) res@(Result (st, out)) = do
-    -- Check if the identifier is in scope (possibly not local)
+
+  process (Assignment (Identifier iden _) expr apos) res@(Result (st, out)) = do
     sym <- ST.lookupComplete st iden
     if isJust sym
-    -- If it is, just check the expression
-    then process expr res
-    -- if its not, add an error and check the expression
+    then
+      process expr res
     else
-      let extra = "Variable " ++ show iden ++ " used in the left side of an \
-      \assignment is not declared in the scope."
+      let extra = "Variable " ++ show iden ++ " at the left side of assignment in line " ++ show (posLine apos) ++ " has not been declared."
       in process expr (Result (st, extra:out))
-  -- #! TODO COMPLETE OTHER PATTERNS
+
   process (Read (Identifier iden _) _) res@(Result (st, out)) = do
     -- Check if the identifier is in scope (possibly not local)
     sym <- ST.lookupComplete st iden
