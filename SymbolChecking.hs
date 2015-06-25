@@ -53,8 +53,14 @@ instance Process Statement where
   process (Assignment (Identifier iden _) expr apos) res@(Result (st, out)) = do
     sym <- ST.lookupComplete st iden
     if isJust sym
-    then
+    then do
       process expr res
+      -- typeRes <- getExpType expr res
+      -- case typeRes of
+      --   Right expType -> do
+      --     val
+      --
+      -- update st iden (Symbol ())
     else
       let extra = "Variable " ++ show iden ++ " at the left side of assignment in line " ++ show (posLine apos) ++ " has not been declared."
       in process expr (Result (st, extra:out))
@@ -183,24 +189,20 @@ getExpType var@(VarExp (Identifier iden _) _) res@(Result (st, out)) = do
 compatibleBinExp :: BinaryOp -> Expression -> Expression -> Result -> ExpTypeResult
 compatibleBinExp op e1@(VarExp (Identifier iden api) _) e2 res@(Result (st, out))= do
   sym <- ST.lookupComplete st iden
-  -- If the symbol exists
   if isJust sym
   then
-    -- Evaluate expression with type found substituted
     compatibleBinExp op (defVal (ST.getType $ fromJust sym) api) e2 res
   else
-    -- Report undeclared value
     return $ Left (Undeclared iden, e1)
+
 compatibleBinExp op e1 e2@(VarExp (Identifier iden api) _) res@(Result (st, out))= do
   sym <- ST.lookupComplete st iden
-  -- If the symbol exists
   if isJust sym
   then
-    -- Evaluate expression with type found substituted
     compatibleBinExp op e1 (defVal (ST.getType $ fromJust sym) api) res
   else
-    -- Report undeclared value
     return $ Left (Undeclared iden, e2)
+
 compatibleBinExp op e1 e2 res = do
   t1 <- getExpType e1 res
   t2 <- getExpType e2 res
@@ -267,3 +269,47 @@ defVal IntType = IntExp 0
 defVal CanvasType = CanvasExp []
 
 -- Expression Evaluation with dynamic checks
+evalExp :: Expression -> Result -> IO Expression
+evalExp (BinaryExp op e1 e2 pos) res = do
+  ex1 <- evalExp e1 res
+  ex2 <- evalExp e2 res
+  case (ex1, op, ex2) of
+    -- Logical
+    (BoolExp False _, Or, BoolExp False _) -> return $ BoolExp False pos
+    (BoolExp _ _, Or, BoolExp _ _) -> return $ BoolExp True pos
+    (BoolExp True _, And, BoolExp True _) -> return $ BoolExp True pos
+    (BoolExp _ _, And, BoolExp _ _) -> return $ BoolExp False pos
+    -- Arithmetic
+    (IntExp val1 _, Plus, IntExp val2 _) -> return $ IntExp (val1+val2) pos
+    (IntExp val1 _, Minus, IntExp val2 _) -> return $ IntExp (val1-val2) pos
+    (IntExp val1 _, Times, IntExp val2 _) -> return $ IntExp (val1*val2) pos
+    (IntExp val1 _, Div, IntExp val2 _) ->
+      if val2 /= 0 then return $ IntExp (val1 `div` val2) pos
+        else error $ "Division by zero in line " ++ (show $ posLine pos)
+    (IntExp val1 _, Mod, IntExp val2 _) ->
+      if val2 /= 0 then return $ IntExp (val1 `mod` val2) pos
+        else error $ "Mod Division by zero in line " ++ (show $ posLine pos) ++ "."
+    -- Relational
+    (IntExp val1 _, LessT, IntExp val2 _) -> return (BoolExp (val1<val2) pos)
+    (IntExp val1 _, GreatT, IntExp val2 _) -> return (BoolExp (val1>val2) pos)
+    (IntExp val1 _, Equal, IntExp val2 _) -> return (BoolExp (val1==val2) pos)
+    (IntExp val1 _, NotEqual, IntExp val2 _) -> return (BoolExp (val1/=val2) pos)
+    (IntExp val1 _, LessEq, IntExp val2 _) -> return (BoolExp (val1<=val2) pos)
+    (IntExp val1 _, GreatEq, IntExp val2 _) -> return (BoolExp (val1>=val2) pos)
+    -- Canvas
+    (CanvasExp val1 _, ConcatH, CanvasExp val2 _) ->
+      if length val1 == length val2 then return $ CanvasExp (zipWith (++) val1 val2) pos
+        else error $ "Canvas horizontal concatenation at line " ++ (show $ posLine pos) ++ " has operators with different heights."
+    (CanvasExp [] _, ConcatV, CanvasExp [] _) -> return $ CanvasExp [] pos
+    (CanvasExp val1 _, ConcatV, CanvasExp val2 _) ->
+      if (not $ null val1) && (not $ null val2) && (length $ head val1) == (length $ head val2)
+        then return $ CanvasExp (val1 ++ val2) pos
+        else error $ "Canvas vertical concatenation at line " ++ (show $ posLine pos) ++ " has operators with different widths."
+
+-- evalExp (UnaryExp op e1 e2 pos) res = -- TODO
+
+evalExp (VarExp (Identifier iden _) _) res@(Result (st, out)) = do
+  sym <- ST.lookupComplete st iden
+  return $ ST.getValue $ fromJust sym
+
+evalExp x res = return x
