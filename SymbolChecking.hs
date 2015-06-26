@@ -54,13 +54,16 @@ instance Process Statement where
     sym <- ST.lookupComplete st iden
     if isJust sym
     then do
-      process expr res
-      -- typeRes <- getExpType expr res
-      -- case typeRes of
-      --   Right expType -> do
-      --     val
-      --
-      -- update st iden (Symbol ())
+      rhsTypeRes <- getExpType expr res
+      if myIsRight rhsTypeRes && (ST.getType (fromJust sym) == myFromRight rhsTypeRes)
+      then do
+        newRes@(Result (newSt, newOut)) <- process expr res
+        newExp <- evalExp expr newRes
+        nextSt <- ST.update newSt iden ((\(Right rhsType) -> ST.Symbol iden rhsType newExp True) rhsTypeRes)
+        return $ Result (nextSt, newOut)
+      else
+        let extra = "Type of assignment at line " ++ show (posLine apos) ++ " have incompatible types."
+        in return $ Result (st, extra:out)
     else
       let extra = "Variable " ++ show iden ++ " at the left side of assignment in line " ++ show (posLine apos) ++ " has not been declared."
       in process expr (Result (st, extra:out))
@@ -139,6 +142,10 @@ instance Process Range where
 myIsRight :: Either a b -> Bool
 myIsRight (Left _) = False
 myIsRight (Right _) = True
+
+-- Helper for Right Values
+myFromRight :: Either b a -> a
+myFromRight (Right x) = x
 
 -- Process Expressions
 instance Process Expression where
@@ -290,12 +297,12 @@ evalExp (BinaryExp op e1 e2 pos) res = do
       if val2 /= 0 then return $ IntExp (val1 `mod` val2) pos
         else error $ "Mod Division by zero in line " ++ (show $ posLine pos) ++ "."
     -- Relational
-    (IntExp val1 _, LessT, IntExp val2 _) -> return (BoolExp (val1<val2) pos)
-    (IntExp val1 _, GreatT, IntExp val2 _) -> return (BoolExp (val1>val2) pos)
-    (IntExp val1 _, Equal, IntExp val2 _) -> return (BoolExp (val1==val2) pos)
-    (IntExp val1 _, NotEqual, IntExp val2 _) -> return (BoolExp (val1/=val2) pos)
-    (IntExp val1 _, LessEq, IntExp val2 _) -> return (BoolExp (val1<=val2) pos)
-    (IntExp val1 _, GreatEq, IntExp val2 _) -> return (BoolExp (val1>=val2) pos)
+    (IntExp val1 _, LessT, IntExp val2 _) -> return $ BoolExp (val1<val2) pos
+    (IntExp val1 _, GreatT, IntExp val2 _) -> return $ BoolExp (val1>val2) pos
+    (IntExp val1 _, Equal, IntExp val2 _) -> return $ BoolExp (val1==val2) pos
+    (IntExp val1 _, NotEqual, IntExp val2 _) -> return $ BoolExp (val1/=val2) pos
+    (IntExp val1 _, LessEq, IntExp val2 _) -> return $ BoolExp (val1<=val2) pos
+    (IntExp val1 _, GreatEq, IntExp val2 _) -> return $ BoolExp (val1>=val2) pos
     -- Canvas
     (CanvasExp val1 _, ConcatH, CanvasExp val2 _) ->
       if length val1 == length val2 then return $ CanvasExp (zipWith (++) val1 val2) pos
@@ -306,10 +313,19 @@ evalExp (BinaryExp op e1 e2 pos) res = do
         then return $ CanvasExp (val1 ++ val2) pos
         else error $ "Canvas vertical concatenation at line " ++ (show $ posLine pos) ++ " has operators with different widths."
 
--- evalExp (UnaryExp op e1 e2 pos) res = -- TODO
+evalExp (UnaryExp op e pos) res = do
+  ex1 <- evalExp e res
+  case (op, e) of
+    -- Arithmetic
+    (Negative, IntExp val _) -> return $ IntExp (-val) pos
+    -- Boolean
+    (Negate, BoolExp val _) -> return $ BoolExp (not val) pos
+    -- Canvas
+    (Rotate, CanvasExp val _) -> return $ CanvasExp val pos -- TODO IMPLEMENT
+    (Transpose, CanvasExp val _) -> return $ CanvasExp val pos -- TODO IMPLEMENT
 
 evalExp (VarExp (Identifier iden _) _) res@(Result (st, out)) = do
   sym <- ST.lookupComplete st iden
   return $ ST.getValue $ fromJust sym
 
-evalExp x res = return x
+evalExp x res = return x -- Int, Boolean and Canvas Expressions are already evaluated

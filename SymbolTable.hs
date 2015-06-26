@@ -5,6 +5,7 @@ module SymbolTable
 , insert
 , lookup
 , lookupComplete
+, update
 , newScope
 , openScope
 , closeScope
