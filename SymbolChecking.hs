@@ -303,9 +303,9 @@ evalExp (BinaryExp op e1 e2 pos) res = do
     (BoolExp True _, And, BoolExp True _) -> return $ BoolExp True pos
     (BoolExp _ _, And, BoolExp _ _) -> return $ BoolExp False pos
     -- Arithmetic
-    (IntExp val1 _, Plus, IntExp val2 _) -> return $ IntExp (val1+val2) pos
-    (IntExp val1 _, Minus, IntExp val2 _) -> return $ IntExp (val1-val2) pos
-    (IntExp val1 _, Times, IntExp val2 _) -> return $ IntExp (val1*val2) pos
+    (left, Plus, right) -> opOver (+) left right
+    (left, Minus, right) -> opOver (subtract) left right
+    (left, Times, right) -> opOver (*) left right
     (IntExp val1 _, Div, IntExp val2 _) ->
       if val2 /= 0 then return $ IntExp (val1 `div` val2) pos
         else error $ "Division by zero in line " ++ (show $ posLine pos)
@@ -345,3 +345,13 @@ evalExp (VarExp (Identifier iden _) _) res@(Result (st, out)) = do
   return $ ST.getValue $ fromJust sym
 
 evalExp x res = return x -- Int, Boolean and Canvas Expressions are already evaluated
+
+-- Helper for overflow
+opOver :: (Integer -> Integer -> Integer) -> Expression -> Expression -> IO Expression
+opOver op e1@(IntExp val1 pos1) e2@(IntExp val2 pos2) =
+  case op val1 val2 of final
+                              | mini <= final && final <= maxi -> return $ IntExp final pos1
+                              | otherwise -> error $ "Arithmetic overflow at line " ++ show (posLine pos1) ++ "."
+  where
+    mini = toInteger (minBound :: Int)
+    maxi = toInteger (maxBound :: Int)
