@@ -340,9 +340,13 @@ evalExp (UnaryExp op e pos) res = do
     (Rotate, CanvasExp val _) -> return $ CanvasExp val pos -- TODO IMPLEMENT
     (Transpose, CanvasExp val _) -> return $ CanvasExp val pos -- TODO IMPLEMENT
 
-evalExp (VarExp (Identifier iden _) _) res@(Result (st, out)) = do
-  sym <- ST.lookupComplete st iden
-  return $ ST.getValue $ fromJust sym
+evalExp (VarExp (Identifier iden _) pos) res@(Result (st, out)) = do
+  (Just sym) <- ST.lookupComplete st iden
+  if ST.isInit sym
+  then
+    return $ ST.getValue sym
+  else
+    error $ "Variable " ++ show iden ++ " in line " ++ show (posLine pos) ++ " used in expression without being initialized."
 
 evalExp x res = return x -- Int, Boolean and Canvas Expressions are already evaluated
 
