@@ -68,16 +68,18 @@ instance Process Statement where
       let extra = "Variable " ++ show iden ++ " at the left side of assignment in line " ++ show (posLine apos) ++ " has not been declared."
       in process expr (Result (st, extra:out))
 
-  process (Read (Identifier iden _) _) res@(Result (st, out)) = do
-    -- Check if the identifier is in scope (possibly not local)
+  process (Read (Identifier iden _) pos) res@(Result (st, out)) = do
     sym <- ST.lookupComplete st iden
-    if isNothing sym
-    -- If it is, keep processing
-    then return res
-    -- iF its not, add an error and check the expression
+    if isJust sym
+    then do
+      let expType = ST.getType $ fromJust sym
+      newSt <- case expType of
+        IntType -> getLine >>= return . (read :: String -> Integer) >>= (\x -> ST.update st iden (ST.Symbol iden expType (IntExp x pos) True))
+        BoolType -> getLine >>= return . (read :: String -> Integer) >>= (\x -> ST.update st iden (ST.Symbol iden expType (IntExp x pos) True))
+        CanvasType -> error "Read with Canvas type."
+      return res
     else
-      let extra = "Variable " ++ show iden ++ " used in a Read statement is not \
-      \declared in the scope"
+      let extra = "Variable " ++ show iden ++ " used in a Read statement in line " ++ show (posLine pos) ++ "is not declared in the scope"
       in return $ Result (st, extra:out)
   process (Write expr _) res@(Result (st, out)) = do
     -- The expression type has to be Canvas
