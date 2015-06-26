@@ -116,7 +116,7 @@ STATEMENT : '{' DECLARE_LIST '|' STATEMENT_LIST '}'  { BlockStmt (Just $2) $4 }
   | '(' EXPRESSION '?' STATEMENT_LIST ')' { If $2 $4 Nothing (position $2) }
   | '(' EXPRESSION '?' STATEMENT_LIST ':' STATEMENT_LIST ')' { If $2 $4 (Just $6) (position $1) }
 
-  | '[' EXPRESSION '|' STATEMENT_LIST '}' { ForIn $2 $4 (position $1) }
+  | '[' EXPRESSION '|' STATEMENT_LIST ']' { ForIn $2 $4 (position $1) }
   | '[' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet Nothing (Range $2 $4 (position $2)) $6 (position $1) }
   | '[' IDENTIFIER ':' EXPRESSION '..' EXPRESSION '|' STATEMENT_LIST ']' { ForDet (Just $2) (Range $4 $6 (position $4)) $8 (position $1) }
 
