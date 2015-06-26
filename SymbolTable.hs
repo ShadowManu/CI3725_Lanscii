@@ -158,6 +158,6 @@ instance (SDisplay a) => SDisplay (Tree a) where
 instance SDisplay (B.HashTable P.RealWorld String Symbol) where
   sDisplay hash = do
     kvList <- H.toList hash
-    let strKv (_, Symbol name t val ini) = "Symbol " ++ show name ++ " with type " ++ show t ++ "."
-    let printKv = map strKv
-    return $ "SYMBOLS: " : printKv kvList
+    let showKv (_, sym) = show sym
+    let showAll = map showKv
+    return $ "SYMBOLS: " : showAll kvList
