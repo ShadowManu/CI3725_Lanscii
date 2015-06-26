@@ -52,7 +52,7 @@ tokens :-
   true      { Token TRUE }
   false     { Token FALSE }
   @integer  { Token NUMBER }
-  \#        { Token CANVAS }
+  \#        { canToken "" }
   \<\\\>    { canToken "\\" }
   \<\|\>    { canToken "|" }
   \<\/\>    { canToken "/" }

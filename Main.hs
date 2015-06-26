@@ -34,5 +34,6 @@ main = do
       if not $ null out
         then mapM_ putStrLn $ reverse out
         else do
-          text <- sDisplay st
-          mapM_ putStrLn text
+          return ()
+          -- text <- sDisplay st
+          -- mapM_ putStrLn text

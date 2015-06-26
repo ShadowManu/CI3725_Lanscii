@@ -187,7 +187,7 @@ instance Process (DataType, Identifier) where
       in return $ Result (st, extra:out)
     -- If its not, add it to the table (hiding the upper one)
     else do
-      newSt <- ST.insert st iden (ST.Symbol iden dt (defVal BoolType pos)  False)
+      newSt <- ST.insert st iden (ST.Symbol iden dt (defVal dt pos)  False)
       return $ Result (newSt, out)
 
 -- Omitting processing DataTypes (not required)

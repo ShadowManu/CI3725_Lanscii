@@ -26,13 +26,13 @@ import Display
   true  { Token TRUE ap val }
   false { Token FALSE ap val }
   int  { Token NUMBER ap val }
-  '#'    { Token CANVAS ap val }
-  '<\>'  { Token CANVAS ap val }
-  '<|>'  { Token CANVAS ap val }
-  '</>'  { Token CANVAS ap val }
-  '<->'  { Token CANVAS ap val }
-  '<_>'  { Token CANVAS ap val }
-  '< >'  { Token CANVAS ap val }
+  c0  { Token CANVAS ap "" }
+  c1  { Token CANVAS ap "\\" }
+  c2  { Token CANVAS ap "|" }
+  c3  { Token CANVAS ap "/" }
+  c4  { Token CANVAS ap "-" }
+  c5  { Token CANVAS ap "_" }
+  c6  { Token CANVAS ap " " }
 
   -- Reserved Words
   read  { Token READ ap val }
@@ -139,13 +139,13 @@ EXPRESSION : int { IntExp (read (tokVal $1) :: Integer) (position $1) }
   | IDENTIFIER { VarExp $1 (position $1) }
   | true  { BoolExp True (position $1) }
   | false { BoolExp False (position $1) }
-  | '#' { CanvasExp [""] (position $1) }
-  | '<\>' { CanvasExp ["\\"] (position $1) }
-  | '<|>' { CanvasExp ["|"] (position $1) }
-  | '</>' { CanvasExp ["/"] (position $1) }
-  | '<->' { CanvasExp ["-"] (position $1) }
-  | '<_>' { CanvasExp ["_"] (position $1) }
-  | '< >' { CanvasExp [" "] (position $1) }
+  | c0 { CanvasExp [""] (position $1) }
+  | c1 { CanvasExp ["\\"] (position $1) }
+  | c2 { CanvasExp ["|"] (position $1) }
+  | c3 { CanvasExp ["/"] (position $1) }
+  | c4 { CanvasExp ["-"] (position $1) }
+  | c5 { CanvasExp ["_"] (position $1) }
+  | c6 { CanvasExp [" "] (position $1) }
   | '(' EXPRESSION ')' { $2 }
 
   -- Arithmetic Operators
