@@ -82,7 +82,7 @@ instance Process Statement where
       let extra = "Variable " ++ show iden ++ " used in a Read statement in line " ++ show (posLine pos) ++ "is not declared in the scope"
       in return $ Result (st, extra:out)
 
-  process (Write expr _) res@(Result (st, out)) = do
+  process (Write expr pos) res@(Result (st, out)) = do
     expType <- getExpType expr res
     case expType of
       Right CanvasType -> do
@@ -90,12 +90,21 @@ instance Process Statement where
         (CanvasExp val _) <- evalExp expr newRes
         mapM_ putStrLn val
         return newRes
-      _ -> let extra = "Expression of Write is not of type Canvas"
+      _ -> let extra = "Expression of Write in line " ++ show (posLine pos) ++ "is not of type Canvas."
         in process expr (Result (st, extra:out))
 
-  process (If expr thenList elseList _) res =
-    -- Just check the 3 components
-    process expr res >>= process thenList >>= process elseList
+  process (If expr thenList elseList pos) res = do
+    expType <- getExpType expr res
+    case expType of
+      Right BoolType -> do
+        newRes <- process expr res
+        (BoolExp val _) <- evalExp expr newRes
+        case val of
+          True -> process thenList newRes
+          False -> process elseList newRes
+      _ -> let extra = "Expression in If statement at line " ++ show (posLine pos) ++ "is not of type Bool."
+        in process expr res
+
   process (ForIn expr stList _) res =
     -- Just check the 2 components
     process expr res >>= process stList
