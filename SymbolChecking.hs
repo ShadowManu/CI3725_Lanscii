@@ -20,6 +20,11 @@ newtype Result = Result (ST.SymbolTable, [String])
 getErrors :: Result -> [String]
 getErrors (Result (_, errs)) = errs
 
+-- Append an error to a Result
+appendError :: Result -> String -> Result
+appendError (Result (st, out)) extra =
+  Result (st, if extra `elem` out then out else extra:out)
+
 -- Result Constructor
 newResult :: IO (Result)
 newResult = do
@@ -67,10 +72,10 @@ instance Process Statement where
         return $ Result (nextSt, newOut)
       else
         let extra = "Type of assignment at line " ++ show (posLine apos) ++ " have incompatible types."
-        in return $ Result (st, extra:out)
+        in return $ appendError res extra
     else
       let extra = "Variable " ++ show iden ++ " at the left side of assignment in line " ++ show (posLine apos) ++ " has not been declared."
-      in process expr (Result (st, extra:out))
+      in process expr $ appendError res extra
 
   process (Read (Identifier iden _) pos) res@(Result (st, out)) = do
     sym <- ST.lookupComplete st iden
@@ -84,9 +89,9 @@ instance Process Statement where
       return res
     else
       let extra = "Variable " ++ show iden ++ " used in a Read statement in line " ++ show (posLine pos) ++ "is not declared in the scope"
-      in return $ Result (st, extra:out)
+      in return $ appendError res extra
 
-  process (Write expr pos) res@(Result (st, out)) = do
+  process (Write expr pos) res = do
     expType <- getExpType expr res
     case expType of
       Right CanvasType -> do
@@ -95,7 +100,7 @@ instance Process Statement where
         mapM_ putStrLn val
         return newRes
       _ -> let extra = "Expression of Write in line " ++ show (posLine pos) ++ "is not of type Canvas."
-        in process expr (Result (st, extra:out))
+        in process expr $ appendError res extra
 
   process (If expr thenList elseList pos) res = do
     expType <- getExpType expr res
@@ -109,9 +114,16 @@ instance Process Statement where
       _ -> let extra = "Expression in If statement at line " ++ show (posLine pos) ++ "is not of type Bool."
         in process expr res
 
-  process (ForIn expr stList _) res =
-    -- Just check the 2 components
-    process expr res >>= process stList
+  process for@(ForIn expr stList pos) res = do
+    newRes <- process expr res
+    expType <- getExpType expr newRes
+    case expType of
+      Right BoolType -> do
+        (BoolExp bool _) <- evalExp expr res
+        if bool then process stList newRes >>= process for else return newRes
+      _ -> let extra = "Expression in For statement at line " ++ show (posLine pos) ++ "is not of type Bool."
+        in return $ appendError newRes extra
+
   process (ForDet Nothing range stList _) res = do
     -- Check the range
     newRes <- process range res
