@@ -9,6 +9,7 @@ module SymbolTable
 , newScope
 , openScope
 , closeScope
+, delete
 , statError
 ) where
 
@@ -109,6 +110,12 @@ update st@(SymbolTable (Tree tab childs, trail)) str sym = do
     return st
   else
     closeScope st >>= (\st -> update st str sym) >>= openScope
+
+-- Delets an entry in local table
+delete :: SymbolTable -> String -> IO SymbolTable
+delete st@(SymbolTable (Tree tab childs, trail)) str = do
+  H.delete tab str
+  return st
 
 -- Opens a new child table
 newScope :: SymbolTable -> IO SymbolTable

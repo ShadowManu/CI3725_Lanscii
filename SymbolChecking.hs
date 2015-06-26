@@ -25,6 +25,19 @@ appendError :: Result -> String -> Result
 appendError (Result (st, out)) extra =
   Result (st, if extra `elem` out then out else extra:out)
 
+-- Get the start expresssion of a range
+startRange :: Range -> Expression
+startRange (Range e1 _ _) = e1
+
+-- Increase the start range of a range
+nextRange :: Range -> Range
+nextRange (Range e1@(IntExp val pos1) e2 apos) = (Range (IntExp (val+1) pos1) e2 apos)
+
+-- Check if a range has no more elements to check inside
+emptyRange :: Range -> Bool
+emptyRange (Range (IntExp val1 _) (IntExp val2 _) _) = if val1 > val2 then True else False
+emptyRange _ = True
+
 -- Result Constructor
 newResult :: IO (Result)
 newResult = do
@@ -124,26 +137,30 @@ instance Process Statement where
       _ -> let extra = "Expression in For statement at line " ++ show (posLine pos) ++ "is not of type Bool."
         in return $ appendError newRes extra
 
-  process (ForDet Nothing range stList _) res = do
-    -- Check the range
-    newRes <- process range res
-    -- Check the statement list
-    process stList newRes
-  process (ForDet (Just ider@(Identifier iden _)) range stList apos) res@(Result (st, out)) = do
-    -- Check the range first (it must not use the enumerator variable)
-    newRes <- process range res
-    -- Check the identifier in the local scope TODO verify scope rules
-    let (Result (newSt, newOut)) = newRes
+  process (ForDet Nothing range stList pos) res = do
+    process range res >>= process stList >>= processWhenValid
+      where
+        processWhenValid r = if emptyRange range
+          then return r
+          else process (ForDet Nothing (nextRange range) stList pos) r
+
+  process (ForDet var@(Just ider@(Identifier iden _)) range stList apos) res@(Result (st, out)) = do
+    newRes@(Result (newSt, newOut)) <- process range res
+
     sym <- ST.lookup newSt iden
-    let extra = "Variable " ++ show iden ++ " used as enumerated \
-    \identifier in For statement is already declared in the local scope"
-    nextRes <- if isJust sym
-    -- If found, add an error
-    then return $ Result (newSt, extra:newOut)
-    -- If its not, add it to the scope
-    else process (IntType, ider) newRes
-    -- Keep checking with the other pattern
-    process (ForDet Nothing range stList apos) nextRes
+    case sym of
+      Just _ -> let extra = "Variable " ++ show iden ++ " used as enumerated identifier in For statement is already declared in the local scope"
+        in return $ appendError newRes extra
+      Nothing ->
+        if emptyRange range
+        then
+          return newRes
+        else do
+          valExp <- evalExp (startRange range) newRes
+          nextSt <- ST.insert newSt iden (ST.Symbol iden IntType valExp True)
+          (Result (lastSt, lastOut)) <- process stList (Result (nextSt, newOut))
+          ultiSt <- ST.delete nextSt iden
+          process (ForDet var (nextRange range) stList apos) (Result (ultiSt, lastOut))
 
 -- Process variable declarations
 instance Process (DataType, Identifier) where
@@ -166,9 +183,21 @@ instance Process (DataType, Identifier) where
 
 -- Process range expressions
 instance Process Range where
-  process (Range e1 e2 _) res =
-    -- Check both expressions
-    process e1 res >>= process e2
+  process (Range e1 e2 pos) res = do
+    process e1 res >>= process e2 >>= checkt1 >>= checkt2
+    where
+      checkt1 r = do
+        t1Res <- getExpType e1 r
+        case t1Res of
+          Right IntType -> return r
+          _ -> let extra = "Start expression in Range at line " ++ show (posLine pos) ++ "is not of type Int."
+            in return $ appendError r extra
+      checkt2 r = do
+        t2Res <- getExpType e2 r
+        case t2Res of
+          Right IntType -> return r
+          _ -> let extra = "End expression in Range at line " ++ show (posLine pos) ++ "is not of type Int."
+            in return $ appendError r extra
 
 -- Helper because isRight is not defined in older Haskell Libraries
 myIsRight :: Either a b -> Bool
