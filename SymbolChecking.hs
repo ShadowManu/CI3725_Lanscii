@@ -81,13 +81,18 @@ instance Process Statement where
     else
       let extra = "Variable " ++ show iden ++ " used in a Read statement in line " ++ show (posLine pos) ++ "is not declared in the scope"
       in return $ Result (st, extra:out)
+
   process (Write expr _) res@(Result (st, out)) = do
-    -- The expression type has to be Canvas
     expType <- getExpType expr res
     case expType of
-      Right BoolType -> process expr res
+      Right CanvasType -> do
+        newRes <- process expr res
+        (CanvasExp val _) <- evalExp expr newRes
+        mapM_ putStrLn val
+        return newRes
       _ -> let extra = "Expression of Write is not of type Canvas"
         in process expr (Result (st, extra:out))
+
   process (If expr thenList elseList _) res =
     -- Just check the 3 components
     process expr res >>= process thenList >>= process elseList
