@@ -29,6 +29,9 @@ archivos
   d. AST.hs: definicion de tipos de datos para el arbol sintactico
   e. Main.hs: programa principal
 
+-- Etapa 4: el runtime y verificaciones dinamicas se hizo en la misma clase Process,
+debido a lo dificil de pasar por segunda vez por la tabla de simbolos (y su relacion con los alcances).
+
 2. Manejo de errores: no conocemos mucho de Monads (aun) y la implementacion actual
 de la rutina de errores (parseError) es hecha sin mucha revision.
 
@@ -37,6 +40,10 @@ de la rutina de errores (parseError) es hecha sin mucha revision.
 se definen tipos e interfaces de uso de una Tabla de Simbolos (incluyendo impresion);
 y SymbolChecking.hs, donde se realiza realmente el procesamiento del AST (esto
 incluye problemas de declaracion, y verificaciones de tipos)
+
+-- Etapa 4: para los errores dinamicos, utilizamos la funcion error (decorada
+por otras funciones) para mostrarlos. La decoracion consiste en dejar mostrar todos
+los errores estaticos acumulados hasta el momento.
 
 2. Monad IO: el uso de tablas de hash obligo a encapsular basicamente todo tipo
 de operaciones en el Monad IO. Beneficioso en varios casos (mantener estados) y
@@ -47,11 +54,11 @@ modificaciones necesarias a Main.hs
 
 -- Estado Actual del Proyecto:
 
-Se arreglaron los shift/reduce conflicts (agregar un par de reglas de precedencia)
-Se intenta implementar todas los requisitos de esta etapa mas quizá hayan verificaciones
-(principalmente de tipo) que por error humano no se colocaron donde se debe.
-Además, la impresión no es la mas hermosa (se utilizan los derived show en varios
-casos) por razones de tiempo.
+Se realizan la mayoria de los checks estaticos y dinamicos requeridos. Un caso especial
+son los tipos de un rango de un for: si poseen tipos no enteros, el programa se detiene
+como si fuera un error dinámico.
+
+Etapa 4: 
 
 -- Problemas Presentes
 
@@ -76,3 +83,6 @@ mezclandolo con una interfaz de IO y usando HashTables en Haskell. Era factible
 realizarlo pero en una cantidad mayor de tiempo (considerando que esta entrega
 siendo la mas dificil ha tenido el menor tiempo). Sin embargo, estamos a la
 espera de feedback de los mayores errores que pueda tener esta entrega.
+
+--- Etapa 4: esperamos que la implementacion de esta etapa en Haskell usando hashes
+les sea de su agrado.
