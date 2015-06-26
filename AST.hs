@@ -46,7 +46,7 @@ data Range = Range Expression Expression AlexPosn
 data Expression
   = BinaryExp BinaryOp Expression Expression AlexPosn
   | UnaryExp UnaryOp Expression AlexPosn
-  | IntExp Int AlexPosn
+  | IntExp Integer AlexPosn
   | VarExp Identifier AlexPosn
   | BoolExp Bool AlexPosn
   | CanvasExp [String] AlexPosn

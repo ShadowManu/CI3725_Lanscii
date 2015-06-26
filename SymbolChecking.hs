@@ -266,7 +266,7 @@ compatibleUnExp op e res = do
     -- Wrong type propagation
     (_, val@(Left (Undeclared _, _))) -> return val
     (_, val@(Left (Incompatible, _))) -> return val
-    -- Wrint type expression
+    -- Wrong type expression
     _ -> return $ Left (Incompatible, UnaryExp op e (position e))
 
 -- Default Values for Expressions types

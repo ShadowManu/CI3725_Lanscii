@@ -135,7 +135,7 @@ DECLARE_ID : IDENTIFIER { [$1] }
 
 IDENTIFIER : identifier { Identifier (tokVal $1) (position $1) }
 
-EXPRESSION : int { IntExp (read (tokVal $1) :: Int) (position $1) }
+EXPRESSION : int { IntExp (read (tokVal $1) :: Integer) (position $1) }
   | IDENTIFIER { VarExp $1 (position $1) }
   | true  { BoolExp True (position $1) }
   | false { BoolExp False (position $1) }
