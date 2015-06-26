@@ -124,7 +124,7 @@ instance Process Statement where
         case val of
           True -> process thenList newRes
           False -> process elseList newRes
-      _ -> let extra = "Expression in If statement at line " ++ show (posLine pos) ++ "is not of type Bool."
+      _ -> let extra = "Expression in If statement at line " ++ show (posLine pos) ++ " is not of type Bool."
         in process expr res
 
   process for@(ForIn expr stList pos) res = do
@@ -134,33 +134,44 @@ instance Process Statement where
       Right BoolType -> do
         (BoolExp bool _) <- evalExp expr res
         if bool then process stList newRes >>= process for else return newRes
-      _ -> let extra = "Expression in For statement at line " ++ show (posLine pos) ++ "is not of type Bool."
+      _ -> let extra = "Expression in For statement at line " ++ show (posLine pos) ++ " is not of type Bool."
         in return $ appendError newRes extra
 
-  process (ForDet Nothing range stList pos) res = do
-    process range res >>= process stList >>= processWhenValid
-      where
-        processWhenValid r = if emptyRange range
-          then return r
-          else process (ForDet Nothing (nextRange range) stList pos) r
+  process (ForDet Nothing range stList pos) res =
+    case range of
+      (Range (IntExp _ _) (IntExp _ _) _) -> do
+        process range res >>= process stList >>= processWhenValid
+          where
+            processWhenValid r = if emptyRange range
+              then return r
+              else process (ForDet Nothing (nextRange range) stList pos) r
+      (Range e1 e2 rpos) -> do
+        exp1 <- evalExp e1 res
+        exp2 <- evalExp e1 res
+        process range res >>= process (ForDet Nothing (Range exp1 exp2 rpos) stList pos)
 
-  process (ForDet var@(Just ider@(Identifier iden _)) range stList apos) res@(Result (st, out)) = do
-    newRes@(Result (newSt, newOut)) <- process range res
-
-    sym <- ST.lookup newSt iden
-    case sym of
-      Just _ -> let extra = "Variable " ++ show iden ++ " used as enumerated identifier in For statement is already declared in the local scope"
-        in return $ appendError newRes extra
-      Nothing ->
-        if emptyRange range
-        then
-          return newRes
-        else do
-          valExp <- evalExp (startRange range) newRes
-          nextSt <- ST.insert newSt iden (ST.Symbol iden IntType valExp True)
-          (Result (lastSt, lastOut)) <- process stList (Result (nextSt, newOut))
-          ultiSt <- ST.delete nextSt iden
-          process (ForDet var (nextRange range) stList apos) (Result (ultiSt, lastOut))
+  process (ForDet var@(Just ider@(Identifier iden _)) range stList apos) res@(Result (st, out)) =
+    case range of
+      (Range (IntExp _ _) (IntExp _ _) _) -> do
+        newRes@(Result (newSt, newOut)) <- process range res
+        sym <- ST.lookup newSt iden
+        case sym of
+          Just _ -> let extra = "Variable " ++ show iden ++ " used as enumerated identifier in For statement is already declared in the local scope"
+            in return $ appendError newRes extra
+          Nothing ->
+            if emptyRange range
+            then
+              return newRes
+            else do
+              valExp <- evalExp (startRange range) newRes
+              nextSt <- ST.insert newSt iden (ST.Symbol iden IntType valExp True)
+              (Result (lastSt, lastOut)) <- process stList (Result (nextSt, newOut))
+              ultiSt <- ST.delete nextSt iden
+              process (ForDet var (nextRange range) stList apos) (Result (ultiSt, lastOut))
+      (Range e1 e2 rpos) -> do
+        exp1 <- evalExp e1 res
+        exp2 <- evalExp e1 res
+        process range res >>= process (ForDet var (Range exp1 exp2 rpos) stList apos)
 
 -- Process variable declarations
 instance Process (DataType, Identifier) where
@@ -190,14 +201,12 @@ instance Process Range where
         t1Res <- getExpType e1 r
         case t1Res of
           Right IntType -> return r
-          _ -> let extra = "Start expression in Range at line " ++ show (posLine pos) ++ "is not of type Int."
-            in return $ appendError r extra
+          _ -> ST.statError (getErrors res) $ "Start expression in Range at line " ++ show (posLine pos) ++ " is not of type Int."
       checkt2 r = do
         t2Res <- getExpType e2 r
         case t2Res of
           Right IntType -> return r
-          _ -> let extra = "End expression in Range at line " ++ show (posLine pos) ++ "is not of type Int."
-            in return $ appendError r extra
+          _ -> ST.statError (getErrors res) $ "End expression in Range at line " ++ show (posLine pos) ++ " is not of type Int."
 
 -- Helper because isRight is not defined in older Haskell Libraries
 myIsRight :: Either a b -> Bool
@@ -355,7 +364,8 @@ evalExp (BinaryExp op e1 e2 pos) res = do
       if val2 /= 0 then return $ IntExp (val1 `div` val2) pos
         else ST.statError (getErrors res) $ "Division by zero in line " ++ (show $ posLine pos)
     (IntExp val1 _, Mod, IntExp val2 _) ->
-      if val2 /= 0 then return $ IntExp (val1 `mod` val2) pos
+      if val2 /= 0 then do
+        return $ IntExp (val1 `mod` val2) pos
         else ST.statError (getErrors res) $ "Mod Division by zero in line " ++ (show $ posLine pos) ++ "."
     -- Relational
     (IntExp val1 _, LessT, IntExp val2 _) -> return $ BoolExp (val1<val2) pos
