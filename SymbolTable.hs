@@ -9,6 +9,7 @@ module SymbolTable
 , newScope
 , openScope
 , closeScope
+, statError
 ) where
 
 {- OPTIONS_GHC -XFlexibleInstances -XTypeSynonymInstances -}
@@ -161,3 +162,7 @@ instance SDisplay (B.HashTable P.RealWorld String Symbol) where
     let showKv (_, sym) = show sym
     let showAll = map showKv
     return $ "SYMBOLS: " : showAll kvList
+
+-- Custom error to allow printing the static errors
+statError :: [String] -> String -> a
+statError errors msg = error $ unlines errors ++ msg

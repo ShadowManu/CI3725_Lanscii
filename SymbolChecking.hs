@@ -16,6 +16,10 @@ import Display
 -- Type for keeping results of Symbol Table processing
 newtype Result = Result (ST.SymbolTable, [String])
 
+-- Result error getter
+getErrors :: Result -> [String]
+getErrors (Result (_, errs)) = errs
+
 -- Result Constructor
 newResult :: IO (Result)
 newResult = do
@@ -76,7 +80,7 @@ instance Process Statement where
       newSt <- case expType of
         IntType -> getLine >>= return . (read :: String -> Integer) >>= (\x -> ST.update st iden (ST.Symbol iden expType (IntExp x pos) True))
         BoolType -> getLine >>= return . (read :: String -> Integer) >>= (\x -> ST.update st iden (ST.Symbol iden expType (IntExp x pos) True))
-        CanvasType -> error "Read with Canvas type."
+        CanvasType -> ST.statError (getErrors res) $ "Read with Canvas type."
       return res
     else
       let extra = "Variable " ++ show iden ++ " used in a Read statement in line " ++ show (posLine pos) ++ "is not declared in the scope"
@@ -303,15 +307,15 @@ evalExp (BinaryExp op e1 e2 pos) res = do
     (BoolExp True _, And, BoolExp True _) -> return $ BoolExp True pos
     (BoolExp _ _, And, BoolExp _ _) -> return $ BoolExp False pos
     -- Arithmetic
-    (left, Plus, right) -> opOver (+) left right
-    (left, Minus, right) -> opOver (subtract) left right
-    (left, Times, right) -> opOver (*) left right
+    (left, Plus, right) -> opOver (+) left right res
+    (left, Minus, right) -> opOver (subtract) left right res
+    (left, Times, right) -> opOver (*) left right res
     (IntExp val1 _, Div, IntExp val2 _) ->
       if val2 /= 0 then return $ IntExp (val1 `div` val2) pos
-        else error $ "Division by zero in line " ++ (show $ posLine pos)
+        else ST.statError (getErrors res) $ "Division by zero in line " ++ (show $ posLine pos)
     (IntExp val1 _, Mod, IntExp val2 _) ->
       if val2 /= 0 then return $ IntExp (val1 `mod` val2) pos
-        else error $ "Mod Division by zero in line " ++ (show $ posLine pos) ++ "."
+        else ST.statError (getErrors res) $ "Mod Division by zero in line " ++ (show $ posLine pos) ++ "."
     -- Relational
     (IntExp val1 _, LessT, IntExp val2 _) -> return $ BoolExp (val1<val2) pos
     (IntExp val1 _, GreatT, IntExp val2 _) -> return $ BoolExp (val1>val2) pos
@@ -322,12 +326,12 @@ evalExp (BinaryExp op e1 e2 pos) res = do
     -- Canvas
     (CanvasExp val1 _, ConcatH, CanvasExp val2 _) ->
       if length val1 == length val2 then return $ CanvasExp (zipWith (++) val1 val2) pos
-        else error $ "Canvas horizontal concatenation at line " ++ (show $ posLine pos) ++ " has operators with different heights."
+        else ST.statError (getErrors res) $ "Canvas horizontal concatenation at line " ++ (show $ posLine pos) ++ " has operators with different heights."
     (CanvasExp [] _, ConcatV, CanvasExp [] _) -> return $ CanvasExp [] pos
     (CanvasExp val1 _, ConcatV, CanvasExp val2 _) ->
       if (not $ null val1) && (not $ null val2) && (length $ head val1) == (length $ head val2)
         then return $ CanvasExp (val1 ++ val2) pos
-        else error $ "Canvas vertical concatenation at line " ++ (show $ posLine pos) ++ " has operators with different widths."
+        else ST.statError (getErrors res) $ "Canvas vertical concatenation at line " ++ (show $ posLine pos) ++ " has operators with different widths."
 
 evalExp (UnaryExp op e pos) res = do
   ex1 <- evalExp e res
@@ -346,16 +350,16 @@ evalExp (VarExp (Identifier iden _) pos) res@(Result (st, out)) = do
   then
     return $ ST.getValue sym
   else
-    error $ "Variable " ++ show iden ++ " in line " ++ show (posLine pos) ++ " used in expression without being initialized."
+    ST.statError (getErrors res) $ "Variable " ++ show iden ++ " in line " ++ show (posLine pos) ++ " used in expression without being initialized."
 
 evalExp x res = return x -- Int, Boolean and Canvas Expressions are already evaluated
 
 -- Helper for overflow
-opOver :: (Integer -> Integer -> Integer) -> Expression -> Expression -> IO Expression
-opOver op e1@(IntExp val1 pos1) e2@(IntExp val2 pos2) =
+opOver :: (Integer -> Integer -> Integer) -> Expression -> Expression -> Result -> IO Expression
+opOver op e1@(IntExp val1 pos1) e2@(IntExp val2 pos2) res =
   case op val1 val2 of final
                               | mini <= final && final <= maxi -> return $ IntExp final pos1
-                              | otherwise -> error $ "Arithmetic overflow at line " ++ show (posLine pos1) ++ "."
+                              | otherwise -> ST.statError (getErrors res) $ "Arithmetic overflow at line " ++ show (posLine pos1) ++ "."
   where
     mini = toInteger (minBound :: Int)
     maxi = toInteger (maxBound :: Int)
