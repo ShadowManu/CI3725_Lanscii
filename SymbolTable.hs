@@ -40,7 +40,6 @@ type TreeTrail a = [Tree a]
 ---------------------------------------
 
 -- Type for symbol information
--- TODO to be fully implemented
 data Symbol = Symbol {
   getIden :: String,
   getType :: DataType,

@@ -7,6 +7,7 @@ module SymbolChecking
 import Prelude hiding (lookup)
 import Data.Maybe
 import Data.Either
+import Data.List
 
 import qualified SymbolTable as ST
 import Alex
@@ -392,8 +393,8 @@ evalExp (UnaryExp op e pos) res = do
     -- Boolean
     (Negate, BoolExp val _) -> return $ BoolExp (not val) pos
     -- Canvas
-    (Rotate, CanvasExp val _) -> return $ CanvasExp val pos -- TODO IMPLEMENT
-    (Transpose, CanvasExp val _) -> return $ CanvasExp val pos -- TODO IMPLEMENT
+    (Rotate, CanvasExp val _) -> return $ CanvasExp (map (map rotate) val) pos
+    (Transpose, CanvasExp val _) -> return $ CanvasExp (transpose val) pos
 
 evalExp (VarExp (Identifier iden _) pos) res@(Result (st, out)) = do
   (Just sym) <- ST.lookupComplete st iden
@@ -414,3 +415,12 @@ opOver op e1@(IntExp val1 pos1) e2@(IntExp val2 pos2) res =
   where
     mini = toInteger (minBound :: Int)
     maxi = toInteger (maxBound :: Int)
+
+-- Helper for rotate operation
+rotate :: Char -> Char
+rotate '/' = '\\'
+rotate '\\' = '/'
+rotate '-' = '|'
+rotate '_' = '|'
+rotate '|' = '-'
+rotate ' ' = ' '
